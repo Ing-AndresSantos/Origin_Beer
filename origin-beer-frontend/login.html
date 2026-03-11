@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Origin Beer — Login</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #0a0a0a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .login-container {
+            background: #111;
+            border: 1px solid #2a2a2a;
+            border-radius: 16px;
+            padding: 48px 40px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .logo-icon {
+            font-size: 48px;
+            display: block;
+            margin-bottom: 12px;
+        }
+
+        .logo h1 {
+            color: #f5a623;
+            font-size: 26px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .logo p {
+            color: #555;
+            font-size: 13px;
+            margin-top: 4px;
+            letter-spacing: 1px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: #888;
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+
+        .form-group input {
+            width: 100%;
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 14px 16px;
+            color: #fff;
+            font-size: 15px;
+            transition: border-color 0.2s;
+            outline: none;
+        }
+
+        .form-group input:focus {
+            border-color: #f5a623;
+        }
+
+        .btn-login {
+            width: 100%;
+            background: #f5a623;
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        .btn-login:hover {
+            background: #e09610;
+        }
+
+        .btn-login:active {
+            transform: scale(0.98);
+        }
+
+        .btn-login:disabled {
+            background: #444;
+            color: #666;
+            cursor: not-allowed;
+        }
+
+        .mensaje {
+            margin-top: 16px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+            display: none;
+        }
+
+        .mensaje.error {
+            background: #2a1a1a;
+            border: 1px solid #5a2020;
+            color: #e57373;
+            display: block;
+        }
+
+        .mensaje.success {
+            background: #1a2a1a;
+            border: 1px solid #2a5a2a;
+            color: #81c784;
+            display: block;
+        }
+
+        .footer-text {
+            text-align: center;
+            color: #333;
+            font-size: 12px;
+            margin-top: 32px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="login-container">
+        <div class="logo">
+            <span class="logo-icon">🍺</span>
+            <h1>Origin Beer</h1>
+            <p>Sistema de Gestión</p>
+        </div>
+
+        <div class="form-group">
+            <label>Correo electrónico</label>
+            <input
+                type="email"
+                id="correo"
+                placeholder="correo@originbeer.com"
+                autocomplete="off"
+            />
+        </div>
+
+        <div class="form-group">
+            <label>Contraseña</label>
+            <input
+                type="password"
+                id="contrasena"
+                placeholder="••••••••"
+            />
+        </div>
+
+        <button class="btn-login" id="btnLogin" onclick="login()">
+            Ingresar
+        </button>
+
+        <div class="mensaje" id="mensaje"></div>
+
+        <p class="footer-text">© 2026 Origin Beer · SentinelDev</p>
+    </div>
+
+    <script>
+        const API = 'http://127.0.0.1:8080';
+
+        document.getElementById('contrasena').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') login();
+        });
+
+        async function login() {
+            const correo = document.getElementById('correo').value.trim();
+            const contrasena = document.getElementById('contrasena').value.trim();
+            const btn = document.getElementById('btnLogin');
+            const mensaje = document.getElementById('mensaje');
+
+            mensaje.className = 'mensaje';
+            mensaje.textContent = '';
+
+            if (!correo || !contrasena) {
+                mostrarError('Completa todos los campos');
+                return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = 'Verificando...';
+
+            try {
+                const response = await fetch(`${API}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ correo, contrasena })
+                });
+
+                const text = await response.text();
+                console.log('Status:', response.status);
+                console.log('Respuesta:', text);
+
+                if (response.ok) {
+                    const data = JSON.parse(text);
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('usuario', JSON.stringify({
+                        nombre: data.nombre,
+                        apellido: data.apellido,
+                        rol: data.rol
+                    }));
+                    mostrarExito(`Bienvenido, ${data.nombre}. Redirigiendo...`);
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
+                } else {
+                    mostrarError(text || 'Credenciales incorrectas');
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                mostrarError('No se pudo conectar con el servidor');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Ingresar';
+            }
+        }
+
+        function mostrarError(msg) {
+            const mensaje = document.getElementById('mensaje');
+            mensaje.className = 'mensaje error';
+            mensaje.textContent = msg;
+        }
+
+        function mostrarExito(msg) {
+            const mensaje = document.getElementById('mensaje');
+            mensaje.className = 'mensaje success';
+            mensaje.textContent = msg;
+        }
+    </script>
+
+</body>
+</html>

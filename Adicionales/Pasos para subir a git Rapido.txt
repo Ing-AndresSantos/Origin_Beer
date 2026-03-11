@@ -1,0 +1,32 @@
+Pasos para subir a git Rapido
+
+cd /c/Users/gonza/OneDrive/Desktop/Origin_Beer
+
+git init
+git add .
+git commit -m "Primer commit"
+
+git branch -M main
+git remote add origin https://github.com/Ing-AndresSantos/Origin_Beer.git
+git push -u origin main
+
+
+Git Clone
+
+cd /c/Users/gonza/OneDrive/Desktop/Origin_Beer
+
+git init
+
+echo node_modules/ > .gitignore
+echo .env >> .gitignore
+echo dist/ >> .gitignore
+
+echo "# Origin_Beer" > README.md
+echo "Proyecto Origin Beer" >> README.md
+
+git add .
+git commit -m "Initial project setup"
+
+git branch -M main
+git remote add origin https://github.com/Ing-AndresSantos/Origin_Beer.git
+git push -u origin main
