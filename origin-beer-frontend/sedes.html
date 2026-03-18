@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Origin beer — Sedes</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --orange: #f5a623;
+            --bg: #0a0a0a;
+            --sidebar-bg: #111111;
+            --card-bg: #161616;
+            --border: #222222;
+            --text: #e8e8e8;
+            --text-muted: #666666;
+            --text-sub: #999999;
+        }
+
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+
+        .sidebar { width: 240px; min-height: 100vh; background: var(--sidebar-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; position: fixed; top: 0; left: 0; z-index: 100; }
+        .sidebar-logo { padding: 24px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; }
+        .sidebar-logo span { font-size: 28px; }
+        .sidebar-logo h2 { color: var(--orange); font-size: 16px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+        .sidebar-logo p { color: var(--text-muted); font-size: 11px; margin-top: 2px; }
+        .sidebar-user { padding: 16px 20px; border-bottom: 1px solid var(--border); background: #141414; }
+        .sidebar-user .user-name { color: var(--text); font-size: 13px; font-weight: 600; }
+        .sidebar-user .user-rol { color: var(--orange); font-size: 11px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+        .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+        .nav-section { padding: 12px 20px 4px; color: var(--text-muted); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600; }
+        .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; color: var(--text-sub); font-size: 13px; cursor: pointer; transition: all 0.15s; border-left: 3px solid transparent; text-decoration: none; }
+        .nav-item:hover { background: #1a1a1a; color: var(--text); border-left-color: #333; }
+        .nav-item.active { background: #1c1600; color: var(--orange); border-left-color: var(--orange); font-weight: 600; }
+        .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+        .sidebar-footer { padding: 16px 20px; border-top: 1px solid var(--border); }
+        .btn-logout { width: 100%; background: transparent; border: 1px solid #333; color: var(--text-muted); padding: 9px 16px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 8px; justify-content: center; }
+        .btn-logout:hover { border-color: #e57373; color: #e57373; background: #1a0f0f; }
+
+        .main { margin-left: 240px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+        .topbar { background: var(--sidebar-bg); border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+        .topbar-title { font-size: 18px; font-weight: 600; color: var(--text); }
+        .topbar-right { display: flex; align-items: center; gap: 16px; color: var(--text-muted); font-size: 13px; }
+        .badge-online { display: flex; align-items: center; gap: 6px; color: #81c784; font-size: 12px; }
+        .badge-online::before { content: ''; width: 7px; height: 7px; background: #81c784; border-radius: 50%; display: inline-block; }
+        .content { padding: 32px; flex: 1; }
+
+        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
+        .page-header h2 { font-size: 22px; font-weight: 700; color: var(--text); }
+        .page-header p { color: var(--text-muted); font-size: 13px; margin-top: 2px; }
+
+        .stats-mini { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+        .stat-mini { background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; display: flex; align-items: center; gap: 14px; }
+        .stat-mini-icon { font-size: 28px; opacity: 0.8; }
+        .stat-mini-val { font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
+        .stat-mini-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+        .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 12px; }
+        .search-box { display: flex; align-items: center; background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 16px; gap: 8px; flex: 1; max-width: 340px; }
+        .search-box input { background: transparent; border: none; outline: none; color: var(--text); font-size: 13px; width: 100%; }
+        .search-box input::placeholder { color: var(--text-muted); }
+        .filter-select { background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-size: 13px; outline: none; cursor: pointer; }
+        .filter-select option { background: #1a1a1a; }
+
+        /* Cards Grid */
+        .sedes-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+        .sede-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; transition: border-color 0.2s; }
+        .sede-card:hover { border-color: #333; }
+
+        .sede-card-header { padding: 20px 20px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; }
+        .sede-icon { width: 44px; height: 44px; border-radius: 10px; background: #1c1600; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+        .sede-nombre { font-size: 15px; font-weight: 600; color: var(--text); margin-top: 12px; }
+        .sede-codigo { font-size: 11px; color: var(--text-muted); margin-top: 2px; letter-spacing: 1px; }
+
+        .sede-card-body { padding: 16px 20px; }
+        .sede-detail { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; color: var(--text-sub); }
+        .sede-detail:last-child { margin-bottom: 0; }
+        .sede-detail span:first-child { font-size: 14px; width: 18px; }
+
+        .badge { font-size: 10px; padding: 4px 10px; border-radius: 20px; font-weight: 600; letter-spacing: 0.5px; display: inline-block; }
+        .badge-activo { background: #0d2211; color: #81c784; }
+        .badge-inactivo { background: #2a1a1a; color: #e57373; }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+        .empty-state .empty-icon { font-size: 48px; display: block; margin-bottom: 12px; opacity: 0.3; }
+        .empty-state p { font-size: 14px; }
+
+        .result-info { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+    </style>
+</head>
+<body>
+
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <span>🍺</span>
+        <div><h2>Origin beer</h2><p>Sistema de Gestión</p></div>
+    </div>
+    <div class="sidebar-user">
+        <div class="user-name" id="sidebarNombre">Cargando...</div>
+        <div class="user-rol" id="sidebarRol">—</div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section">Principal</div>
+        <a class="nav-item" href="dashboard.html"><span class="nav-icon">📊</span> Dashboard</a>
+        <div class="nav-section">Administración</div>
+        <a class="nav-item" href="usuarios.html"><span class="nav-icon">👥</span> Usuarios</a>
+        <a class="nav-item active" href="sedes.html"><span class="nav-icon">🏢</span> Sedes</a>
+        <div class="nav-section">Inventario</div>
+        <a class="nav-item" href="productos.html"><span class="nav-icon">🛒</span> Productos</a>
+        <a class="nav-item" href="inventario.html"><span class="nav-icon">📦</span> Inventario</a>
+        <div class="nav-section">Operaciones</div>
+        <a class="nav-item" href="pedidos.html"><span class="nav-icon">🧾</span> Pedidos</a>
+        <a class="nav-item" href="facturacion.html"><span class="nav-icon">💳</span> Facturación</a>
+        <div class="nav-section">Análisis</div>
+        <a class="nav-item" href="reportes.html"><span class="nav-icon">📈</span> Reportes</a>
+    </nav>
+    <div class="sidebar-footer">
+        <button class="btn-logout" onclick="cerrarSesion()">🚪 Cerrar Sesión</button>
+    </div>
+</aside>
+
+<main class="main">
+    <div class="topbar">
+        <div class="topbar-title">Gestión de Sedes</div>
+        <div class="topbar-right">
+            <div class="badge-online">Servidor activo</div>
+            <span id="fechaHoy"></span>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="page-header">
+            <div>
+                <h2>🏢 Sedes</h2>
+                <p>Locales y franquicias de Origin beer</p>
+            </div>
+        </div>
+
+        <div class="stats-mini">
+            <div class="stat-mini">
+                <span class="stat-mini-icon">🏢</span>
+                <div>
+                    <div class="stat-mini-val" id="totalSedes">—</div>
+                    <div class="stat-mini-label">Total Sedes</div>
+                </div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">✅</span>
+                <div>
+                    <div class="stat-mini-val" id="totalActivas">—</div>
+                    <div class="stat-mini-label">Activas</div>
+                </div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">🔴</span>
+                <div>
+                    <div class="stat-mini-val" id="totalInactivas">—</div>
+                    <div class="stat-mini-label">Inactivas</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <div class="search-box">
+                <span>🔍</span>
+                <input type="text" id="buscar" placeholder="Buscar por nombre, ciudad o código..." oninput="filtrar()">
+            </div>
+            <select class="filter-select" id="filtroEstado" onchange="filtrar()">
+                <option value="">Todos los estados</option>
+                <option value="activo">Activas</option>
+                <option value="inactivo">Inactivas</option>
+            </select>
+        </div>
+
+        <div class="result-info" id="resultInfo"></div>
+        <div class="sedes-grid" id="sedesGrid">
+            <div style="grid-column: 1/-1">
+                <div class="empty-state">
+                    <span class="empty-icon">⏳</span>
+                    <p>Cargando sedes...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    const API = 'http://127.0.0.1:8080';
+    const token = localStorage.getItem('token');
+    const usuarioData = JSON.parse(localStorage.getItem('usuario') || '{}');
+    if (!token) window.location.href = 'login.html';
+
+    const ahora = new Date();
+    document.getElementById('fechaHoy').textContent = ahora.toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('sidebarNombre').textContent = (usuarioData.nombre || '') + ' ' + (usuarioData.apellido || '');
+    document.getElementById('sidebarRol').textContent = usuarioData.rol || 'ADMIN';
+
+    let todasLasSedes = [];
+
+    async function cargarSedes() {
+        try {
+            const res = await fetch(`${API}/api/sedes`, { headers: { 'Authorization': `Bearer ${token}` } });
+            if (res.status === 401) { cerrarSesion(); return; }
+            todasLasSedes = await res.json();
+            actualizarStats();
+            filtrar();
+        } catch (e) {
+            document.getElementById('sedesGrid').innerHTML = `<div style="grid-column:1/-1"><div class="empty-state"><span class="empty-icon">❌</span><p>No se pudo conectar con el servidor</p></div></div>`;
+        }
+    }
+
+    function actualizarStats() {
+        const activas = todasLasSedes.filter(s => s.activo).length;
+        document.getElementById('totalSedes').textContent = todasLasSedes.length;
+        document.getElementById('totalActivas').textContent = activas;
+        document.getElementById('totalInactivas').textContent = todasLasSedes.length - activas;
+    }
+
+    function filtrar() {
+        const buscar = document.getElementById('buscar').value.toLowerCase();
+        const estado = document.getElementById('filtroEstado').value;
+
+        const resultado = todasLasSedes.filter(s => {
+            const texto = `${s.nombre} ${s.ciudad || ''} ${s.codigo}`.toLowerCase();
+            const matchBuscar = texto.includes(buscar);
+            const matchEstado = !estado || (estado === 'activo' && s.activo) || (estado === 'inactivo' && !s.activo);
+            return matchBuscar && matchEstado;
+        });
+
+        document.getElementById('resultInfo').textContent = `${resultado.length} sede${resultado.length !== 1 ? 's' : ''} encontrada${resultado.length !== 1 ? 's' : ''}`;
+        renderSedes(resultado);
+    }
+
+    function renderSedes(sedes) {
+        const grid = document.getElementById('sedesGrid');
+        if (sedes.length === 0) {
+            grid.innerHTML = `<div style="grid-column:1/-1"><div class="empty-state"><span class="empty-icon">🔍</span><p>No se encontraron sedes</p></div></div>`;
+            return;
+        }
+        grid.innerHTML = sedes.map(s => `
+            <div class="sede-card">
+                <div class="sede-card-header">
+                    <div>
+                        <div class="sede-icon">🏢</div>
+                        <div class="sede-nombre">${s.nombre}</div>
+                        <div class="sede-codigo">${s.codigo}</div>
+                    </div>
+                    <span class="badge ${s.activo ? 'badge-activo' : 'badge-inactivo'}">${s.activo ? 'Activa' : 'Inactiva'}</span>
+                </div>
+                <div class="sede-card-body">
+                    <div class="sede-detail"><span>📍</span> ${s.direccion || 'Sin dirección'}</div>
+                    <div class="sede-detail"><span>🏙️</span> ${s.ciudad || '—'}</div>
+                    <div class="sede-detail"><span>📞</span> ${s.telefono || '—'}</div>
+                    <div class="sede-detail"><span>✉️</span> ${s.correo || '—'}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function cerrarSesion() {
+        localStorage.removeItem('token');
+        localStorage.removeItem('usuario');
+        window.location.href = 'login.html';
+    }
+
+    cargarSedes();
+</script>
+</body>
+</html>

@@ -4,8 +4,7 @@
 -- Herramienta: MySQL Workbench 8.0
 -- Versión: 2.0
 -- Fecha: 2026-03-10
--- Basado en: Historias de Usuario Spri'
---- int 2, 3, 4, 5 y 6
+-- Basado en: Historias de Usuario Sprint 2, 3, 4, 5 y 6
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------

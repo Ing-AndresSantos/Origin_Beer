@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Origin beer — Usuarios</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --orange: #f5a623;
+            --orange-dark: #d4860f;
+            --bg: #0a0a0a;
+            --sidebar-bg: #111111;
+            --card-bg: #161616;
+            --border: #222222;
+            --text: #e8e8e8;
+            --text-muted: #666666;
+            --text-sub: #999999;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            width: 240px;
+            min-height: 100vh;
+            background: var(--sidebar-bg);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            position: fixed;
+            top: 0; left: 0;
+            z-index: 100;
+        }
+
+        .sidebar-logo {
+            padding: 24px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-logo span { font-size: 28px; }
+
+        .sidebar-logo h2 {
+            color: var(--orange);
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        .sidebar-logo p {
+            color: var(--text-muted);
+            font-size: 11px;
+            margin-top: 2px;
+        }
+
+        .sidebar-user {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border);
+            background: #141414;
+        }
+
+        .sidebar-user .user-name {
+            color: var(--text);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .sidebar-user .user-rol {
+            color: var(--orange);
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-top: 2px;
+        }
+
+        .sidebar-nav {
+            flex: 1;
+            padding: 12px 0;
+            overflow-y: auto;
+        }
+
+        .nav-section {
+            padding: 12px 20px 4px;
+            color: var(--text-muted);
+            font-size: 10px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            color: var(--text-sub);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.15s;
+            border-left: 3px solid transparent;
+            text-decoration: none;
+        }
+
+        .nav-item:hover {
+            background: #1a1a1a;
+            color: var(--text);
+            border-left-color: #333;
+        }
+
+        .nav-item.active {
+            background: #1c1600;
+            color: var(--orange);
+            border-left-color: var(--orange);
+            font-weight: 600;
+        }
+
+        .nav-item .nav-icon {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            padding: 16px 20px;
+            border-top: 1px solid var(--border);
+        }
+
+        .btn-logout {
+            width: 100%;
+            background: transparent;
+            border: 1px solid #333;
+            color: var(--text-muted);
+            padding: 9px 16px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            justify-content: center;
+        }
+
+        .btn-logout:hover {
+            border-color: #e57373;
+            color: #e57373;
+            background: #1a0f0f;
+        }
+
+        /* ── MAIN ── */
+        .main {
+            margin-left: 240px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .topbar {
+            background: var(--sidebar-bg);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .topbar-title { font-size: 18px; font-weight: 600; color: var(--text); }
+
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .badge-online {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: #81c784;
+            font-size: 12px;
+        }
+
+        .badge-online::before {
+            content: '';
+            width: 7px; height: 7px;
+            background: #81c784;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .content { padding: 32px; flex: 1; }
+
+        /* ── PAGE HEADER ── */
+        .page-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+
+        .page-header h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .page-header p {
+            color: var(--text-muted);
+            font-size: 13px;
+            margin-top: 2px;
+        }
+
+        /* ── STATS ROW ── */
+        .stats-mini {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .stat-mini {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .stat-mini-icon {
+            font-size: 28px;
+            opacity: 0.8;
+        }
+
+        .stat-mini-val {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--text);
+            line-height: 1;
+        }
+
+        .stat-mini-label {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 2px;
+        }
+
+        /* ── TOOLBAR ── */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            gap: 12px;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 16px;
+            gap: 8px;
+            flex: 1;
+            max-width: 340px;
+        }
+
+        .search-box input {
+            background: transparent;
+            border: none;
+            outline: none;
+            color: var(--text);
+            font-size: 13px;
+            width: 100%;
+        }
+
+        .search-box input::placeholder { color: var(--text-muted); }
+
+        .filter-select {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: var(--text);
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .filter-select option { background: #1a1a1a; }
+
+        /* ── TABLE ── */
+        .table-wrap {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #111;
+            border-bottom: 1px solid var(--border);
+        }
+
+        thead th {
+            padding: 14px 20px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #1a1a1a;
+            transition: background 0.1s;
+        }
+
+        tbody tr:last-child { border-bottom: none; }
+
+        tbody tr:hover { background: #1a1a1a; }
+
+        tbody td {
+            padding: 14px 20px;
+            font-size: 13px;
+            color: var(--text);
+            vertical-align: middle;
+        }
+
+        /* ── AVATAR ── */
+        .avatar {
+            width: 36px; height: 36px;
+            border-radius: 8px;
+            background: #1c1600;
+            color: var(--orange);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .user-info .name { font-size: 13px; font-weight: 500; color: var(--text); }
+        .user-info .email { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+        /* ── BADGES ── */
+        .badge {
+            font-size: 10px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            display: inline-block;
+        }
+
+        .badge-admin    { background: #1c1600; color: var(--orange); }
+        .badge-cajero   { background: #0d1a2e; color: #64b5f6; }
+        .badge-mesero   { background: #0d2211; color: #81c784; }
+        .badge-activo   { background: #0d2211; color: #81c784; }
+        .badge-inactivo { background: #2a1a1a; color: #e57373; }
+
+        /* ── EMPTY / LOADING ── */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state .empty-icon {
+            font-size: 48px;
+            display: block;
+            margin-bottom: 12px;
+            opacity: 0.3;
+        }
+
+        .empty-state p { font-size: 14px; }
+
+        /* ── PAGINATION ── */
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 20px;
+            border-top: 1px solid var(--border);
+            background: #111;
+        }
+
+        .pagination span {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .pagination-btns {
+            display: flex;
+            gap: 6px;
+        }
+
+        .btn-page {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text-sub);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .btn-page:hover, .btn-page.active {
+            background: #1c1600;
+            border-color: var(--orange);
+            color: var(--orange);
+        }
+
+        .btn-page:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ── -->
+<aside class="sidebar">
+    <div class="sidebar-logo">
+        <span>🍺</span>
+        <div>
+            <h2>Origin beer</h2>
+            <p>Sistema de Gestión</p>
+        </div>
+    </div>
+
+    <div class="sidebar-user">
+        <div class="user-name" id="sidebarNombre">Cargando...</div>
+        <div class="user-rol" id="sidebarRol">—</div>
+    </div>
+
+    <nav class="sidebar-nav">
+        <div class="nav-section">Principal</div>
+        <a class="nav-item" href="dashboard.html">
+            <span class="nav-icon">📊</span> Dashboard
+        </a>
+
+        <div class="nav-section">Administración</div>
+        <a class="nav-item active" href="usuarios.html">
+            <span class="nav-icon">👥</span> Usuarios
+        </a>
+        <a class="nav-item" href="sedes.html">
+            <span class="nav-icon">🏢</span> Sedes
+        </a>
+
+        <div class="nav-section">Inventario</div>
+        <a class="nav-item" href="productos.html">
+            <span class="nav-icon">🛒</span> Productos
+        </a>
+        <a class="nav-item" href="inventario.html">
+            <span class="nav-icon">📦</span> Inventario
+        </a>
+
+        <div class="nav-section">Operaciones</div>
+        <a class="nav-item" href="pedidos.html">
+            <span class="nav-icon">🧾</span> Pedidos
+        </a>
+        <a class="nav-item" href="facturacion.html">
+            <span class="nav-icon">💳</span> Facturación
+        </a>
+
+        <div class="nav-section">Análisis</div>
+        <a class="nav-item" href="reportes.html">
+            <span class="nav-icon">📈</span> Reportes
+        </a>
+    </nav>
+
+    <div class="sidebar-footer">
+        <button class="btn-logout" onclick="cerrarSesion()">
+            🚪 Cerrar Sesión
+        </button>
+    </div>
+</aside>
+
+<!-- ── MAIN ── -->
+<main class="main">
+
+    <div class="topbar">
+        <div class="topbar-title">Gestión de Usuarios</div>
+        <div class="topbar-right">
+            <div class="badge-online">Servidor activo</div>
+            <span id="fechaHoy"></span>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <div>
+                <h2>👥 Usuarios</h2>
+                <p>Lista completa de usuarios registrados en el sistema</p>
+            </div>
+        </div>
+
+        <!-- Stats Mini -->
+        <div class="stats-mini">
+            <div class="stat-mini">
+                <span class="stat-mini-icon">👥</span>
+                <div>
+                    <div class="stat-mini-val" id="totalUsuarios">—</div>
+                    <div class="stat-mini-label">Total</div>
+                </div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">✅</span>
+                <div>
+                    <div class="stat-mini-val" id="totalActivos">—</div>
+                    <div class="stat-mini-label">Activos</div>
+                </div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">🔴</span>
+                <div>
+                    <div class="stat-mini-val" id="totalInactivos">—</div>
+                    <div class="stat-mini-label">Inactivos</div>
+                </div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">🛡️</span>
+                <div>
+                    <div class="stat-mini-val" id="totalAdmins">—</div>
+                    <div class="stat-mini-label">Admins</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div class="search-box">
+                <span>🔍</span>
+                <input type="text" id="buscar" placeholder="Buscar por nombre, correo o rol..." oninput="filtrar()">
+            </div>
+            <select class="filter-select" id="filtroRol" onchange="filtrar()">
+                <option value="">Todos los roles</option>
+                <option value="ADMIN">Admin</option>
+                <option value="CAJERO">Cajero</option>
+                <option value="MESERO">Mesero</option>
+            </select>
+            <select class="filter-select" id="filtroEstado" onchange="filtrar()">
+                <option value="">Todos los estados</option>
+                <option value="activo">Activos</option>
+                <option value="inactivo">Inactivos</option>
+            </select>
+        </div>
+
+        <!-- Table -->
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Rol</th>
+                        <th>Teléfono</th>
+                        <th>Estado</th>
+                        <th>Último Acceso</th>
+                        <th>Fecha Creación</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaUsuarios">
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <span class="empty-icon">⏳</span>
+                                <p>Cargando usuarios...</p>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="pagination">
+                <span id="paginaInfo">Cargando...</span>
+                <div class="pagination-btns" id="paginaBtns"></div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<script>
+    const API = 'http://127.0.0.1:8080';
+    const token = localStorage.getItem('token');
+    const usuarioData = JSON.parse(localStorage.getItem('usuario') || '{}');
+
+    if (!token) window.location.href = 'login.html';
+
+    // ── HEADER ──
+    const ahora = new Date();
+    document.getElementById('fechaHoy').textContent =
+        ahora.toLocaleDateString('es-CO', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    document.getElementById('sidebarNombre').textContent =
+        (usuarioData.nombre || '') + ' ' + (usuarioData.apellido || '');
+    document.getElementById('sidebarRol').textContent = usuarioData.rol || 'ADMIN';
+
+    // ── DATA ──
+    let todosLosUsuarios = [];
+    let paginaActual = 1;
+    const POR_PAGINA = 10;
+
+    async function cargarUsuarios() {
+        try {
+            const res = await fetch(`${API}/api/usuarios`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.status === 401) { cerrarSesion(); return; }
+            todosLosUsuarios = await res.json();
+            actualizarStats();
+            filtrar();
+        } catch (e) {
+            document.getElementById('tablaUsuarios').innerHTML = `
+                <tr><td colspan="6">
+                    <div class="empty-state">
+                        <span class="empty-icon">❌</span>
+                        <p>No se pudo conectar con el servidor</p>
+                    </div>
+                </td></tr>`;
+        }
+    }
+
+    function actualizarStats() {
+        const activos = todosLosUsuarios.filter(u => u.activo).length;
+        const inactivos = todosLosUsuarios.filter(u => !u.activo).length;
+        const admins = todosLosUsuarios.filter(u => u.rol?.nombre === 'ADMIN').length;
+        document.getElementById('totalUsuarios').textContent = todosLosUsuarios.length;
+        document.getElementById('totalActivos').textContent = activos;
+        document.getElementById('totalInactivos').textContent = inactivos;
+        document.getElementById('totalAdmins').textContent = admins;
+    }
+
+    function filtrar() {
+        const buscar = document.getElementById('buscar').value.toLowerCase();
+        const rol = document.getElementById('filtroRol').value;
+        const estado = document.getElementById('filtroEstado').value;
+
+        let resultado = todosLosUsuarios.filter(u => {
+            const texto = `${u.nombre} ${u.apellido} ${u.correo} ${u.rol?.nombre || ''}`.toLowerCase();
+            const matchBuscar = texto.includes(buscar);
+            const matchRol = !rol || u.rol?.nombre === rol;
+            const matchEstado = !estado ||
+                (estado === 'activo' && u.activo) ||
+                (estado === 'inactivo' && !u.activo);
+            return matchBuscar && matchRol && matchEstado;
+        });
+
+        paginaActual = 1;
+        renderTabla(resultado);
+    }
+
+    function renderTabla(usuarios) {
+        const tbody = document.getElementById('tablaUsuarios');
+        const total = usuarios.length;
+        const totalPaginas = Math.ceil(total / POR_PAGINA);
+        const inicio = (paginaActual - 1) * POR_PAGINA;
+        const fin = inicio + POR_PAGINA;
+        const pagina = usuarios.slice(inicio, fin);
+
+        if (pagina.length === 0) {
+            tbody.innerHTML = `
+                <tr><td colspan="6">
+                    <div class="empty-state">
+                        <span class="empty-icon">🔍</span>
+                        <p>No se encontraron usuarios</p>
+                    </div>
+                </td></tr>`;
+        } else {
+            tbody.innerHTML = pagina.map(u => {
+                const iniciales = `${u.nombre?.charAt(0) || ''}${u.apellido?.charAt(0) || ''}`;
+                const rolNombre = u.rol?.nombre || '—';
+                const rolClass = rolNombre.toLowerCase();
+                const ultimoAcceso = u.ultimoAcceso
+                    ? new Date(u.ultimoAcceso).toLocaleString('es-CO')
+                    : 'Nunca';
+                const fechaCreacion = u.fechaCreacion
+                    ? new Date(u.fechaCreacion).toLocaleDateString('es-CO')
+                    : '—';
+
+                return `
+                <tr>
+                    <td>
+                        <div class="user-info">
+                            <div class="avatar">${iniciales}</div>
+                            <div>
+                                <div class="name">${u.nombre} ${u.apellido}</div>
+                                <div class="email">${u.correo}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td><span class="badge badge-${rolClass}">${rolNombre}</span></td>
+                    <td>${u.telefono || '—'}</td>
+                    <td>
+                        <span class="badge ${u.activo ? 'badge-activo' : 'badge-inactivo'}">
+                            ${u.activo ? 'Activo' : 'Inactivo'}
+                        </span>
+                    </td>
+                    <td>${ultimoAcceso}</td>
+                    <td>${fechaCreacion}</td>
+                </tr>`;
+            }).join('');
+        }
+
+        // Paginación
+        document.getElementById('paginaInfo').textContent =
+            `Mostrando ${Math.min(inicio + 1, total)}–${Math.min(fin, total)} de ${total} usuarios`;
+
+        const btns = document.getElementById('paginaBtns');
+        btns.innerHTML = '';
+
+        const btnPrev = document.createElement('button');
+        btnPrev.className = 'btn-page';
+        btnPrev.textContent = '← Anterior';
+        btnPrev.disabled = paginaActual === 1;
+        btnPrev.onclick = () => { paginaActual--; renderTabla(usuarios); };
+        btns.appendChild(btnPrev);
+
+        for (let i = 1; i <= totalPaginas; i++) {
+            const btn = document.createElement('button');
+            btn.className = `btn-page ${i === paginaActual ? 'active' : ''}`;
+            btn.textContent = i;
+            btn.onclick = () => { paginaActual = i; renderTabla(usuarios); };
+            btns.appendChild(btn);
+        }
+
+        const btnNext = document.createElement('button');
+        btnNext.className = 'btn-page';
+        btnNext.textContent = 'Siguiente →';
+        btnNext.disabled = paginaActual === totalPaginas || totalPaginas === 0;
+        btnNext.onclick = () => { paginaActual++; renderTabla(usuarios); };
+        btns.appendChild(btnNext);
+    }
+
+    function cerrarSesion() {
+        localStorage.removeItem('token');
+        localStorage.removeItem('usuario');
+        window.location.href = 'login.html';
+    }
+
+    cargarUsuarios();
+</script>
+
+</body>
+</html>
