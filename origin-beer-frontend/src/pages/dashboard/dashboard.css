@@ -1,0 +1,160 @@
+/* ── WELCOME BANNER ── */
+.welcome-banner {
+    background: linear-gradient(135deg, #1c1600 0%, #2a1f00 100%);
+    border: 1px solid #3a2800;
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.welcome-banner h1 { font-size: 22px; color: #f5a623; font-weight: 700; }
+.welcome-banner p { color: #999; font-size: 13px; margin-top: 4px; }
+.welcome-banner .beer-icon { font-size: 48px; opacity: 0.6; }
+
+/* ── STATS GRID ── */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.stat-card {
+    background: #161616;
+    border: 1px solid #222;
+    border-radius: 10px;
+    padding: 20px;
+    transition: border-color 0.2s;
+}
+
+.stat-card:hover { border-color: #333; }
+
+.stat-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.stat-label { color: #666; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600; }
+.stat-icon { font-size: 20px; opacity: 0.8; }
+.stat-value { font-size: 32px; font-weight: 700; color: #e8e8e8; line-height: 1; }
+.stat-sub { color: #666; font-size: 12px; margin-top: 6px; }
+
+.stat-trend {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-top: 8px;
+}
+
+.trend-up   { background: #1a2a1a; color: #81c784; }
+.trend-down { background: #2a1a1a; color: #e57373; }
+.trend-warn { background: #2a2000; color: #ffb74d; }
+.loading-val { color: #666; font-size: 24px; }
+
+/* ── ROW TWO ── */
+.row-two {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+/* ── QUICK ACTIONS ── */
+.quick-actions {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+}
+
+.action-btn {
+    background: #161616;
+    border: 1px solid #222;
+    border-radius: 10px;
+    padding: 16px 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    text-decoration: none;
+    color: #999;
+}
+
+.action-btn:hover {
+    border-color: #f5a623;
+    color: #f5a623;
+    background: #1c1600;
+}
+
+.action-btn .action-icon { font-size: 24px; display: block; margin-bottom: 6px; }
+.action-btn span { font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
+
+/* ── CONTENT GRID ── */
+.content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 28px;
+}
+
+.panel {
+    background: #161616;
+    border: 1px solid #222;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.panel-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #222;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.panel-header h3 { font-size: 14px; font-weight: 600; color: #e8e8e8; }
+.panel-header span, .panel-link { font-size: 11px; color: #666; text-decoration: none; }
+.panel-link:hover { color: #f5a623; }
+.panel-body { padding: 16px 20px; }
+
+/* ── LIST ITEMS ── */
+.list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #1a1a1a;
+}
+
+.list-item:last-child { border-bottom: none; }
+.list-item-left { display: flex; align-items: center; gap: 10px; }
+
+.list-avatar {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    background: #1c1600;
+    color: #f5a623;
+}
+
+.list-name { font-size: 13px; color: #e8e8e8; font-weight: 500; }
+.list-sub { font-size: 11px; color: #666; margin-top: 1px; }
+
+/* ── STOCK ALERTS ── */
+.stock-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #1a1a1a;
+}
+
+.stock-bar:last-child { border-bottom: none; }
+.stock-name { font-size: 13px; color: #e8e8e8; }
+.stock-sede { font-size: 11px; color: #666; margin-top: 1px; }
+.stock-qty { font-size: 22px; font-weight: 700; color: #e57373; }

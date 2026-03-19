@@ -1,0 +1,5 @@
+/* users.css */
+.avatar { width: 36px; height: 36px; border-radius: 8px; background: #1c1600; color: #f5a623; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; }
+.user-info { display: flex; align-items: center; gap: 10px; }
+.user-info .name  { font-size: 13px; font-weight: 500; color: #e8e8e8; }
+.user-info .email { font-size: 11px; color: #666; margin-top: 1px; }

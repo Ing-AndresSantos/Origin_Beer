@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Origin Beer — Branches</title>
+    <link rel="stylesheet" href="../../shared.css">
+    <link rel="stylesheet" href="branches.css">
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar"></aside>
+
+<main class="main">
+    <div class="topbar">
+        <div class="topbar-title">Branch Management</div>
+        <div class="topbar-right">
+            <div class="badge-online">Server active</div>
+            <span id="todayDate"></span>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="page-header">
+            <div>
+                <h2>🏢 Branches</h2>
+                <p>Origin Beer locations and franchises</p>
+            </div>
+        </div>
+
+        <div class="stats-mini" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="stat-mini">
+                <span class="stat-mini-icon">🏢</span>
+                <div><div class="stat-mini-val" id="totalBranches">—</div><div class="stat-mini-label">Total Branches</div></div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">✅</span>
+                <div><div class="stat-mini-val" id="totalActive">—</div><div class="stat-mini-label">Active</div></div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">🔴</span>
+                <div><div class="stat-mini-val" id="totalInactive">—</div><div class="stat-mini-label">Inactive</div></div>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <div class="search-box">
+                <span>🔍</span>
+                <input type="text" id="search" placeholder="Search by name, city or code..." oninput="filter()">
+            </div>
+            <select class="filter-select" id="filterStatus" onchange="filter()">
+                <option value="">All statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+            </select>
+        </div>
+
+        <div class="result-info" id="resultInfo"></div>
+        <div class="branches-grid" id="branchesGrid">
+            <div style="grid-column:1/-1">
+                <div class="empty-state"><span class="empty-icon">⏳</span><p>Loading branches...</p></div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="../../shared.js"></script>
+<script src="branches.js"></script>
+</body>
+</html>

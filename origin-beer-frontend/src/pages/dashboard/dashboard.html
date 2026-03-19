@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Origin Beer — Dashboard</title>
+    <link rel="stylesheet" href="../../shared.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar"></aside>
+
+<main class="main">
+    <div class="topbar">
+        <div class="topbar-title">Dashboard</div>
+        <div class="topbar-right">
+            <div class="badge-online">Server active</div>
+            <span id="todayDate"></span>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <div class="welcome-banner">
+            <div>
+                <h1>Welcome back, <span id="bannerName">Admin</span>! 👋</h1>
+                <p>Here's your summary for today — <span id="bannerDate"></span></p>
+            </div>
+            <div class="beer-icon">🍺</div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-label">Active Users</span><span class="stat-icon">👥</span></div>
+                <div class="stat-value" id="statUsers"><span class="loading-val">—</span></div>
+                <div class="stat-sub">Registered in the system</div>
+                <div class="stat-trend trend-up" id="trendUsers">↑ Loading...</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-label">Active Branches</span><span class="stat-icon">🏢</span></div>
+                <div class="stat-value" id="statBranches"><span class="loading-val">—</span></div>
+                <div class="stat-sub">Locations operating</div>
+                <div class="stat-trend trend-up" id="trendBranches">↑ Loading...</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-label">Products</span><span class="stat-icon">🛒</span></div>
+                <div class="stat-value" id="statProducts"><span class="loading-val">—</span></div>
+                <div class="stat-sub">In active catalog</div>
+                <div class="stat-trend trend-up" id="trendProducts">↑ Loading...</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-label">Orders Today</span><span class="stat-icon">🧾</span></div>
+                <div class="stat-value" id="statOrders"><span class="loading-val">—</span></div>
+                <div class="stat-sub">Generated today</div>
+                <div class="stat-trend trend-up" id="trendOrders">↑ Loading...</div>
+            </div>
+        </div>
+
+        <div class="row-two">
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-label">Sales Today</span><span class="stat-icon">💰</span></div>
+                <div class="stat-value" id="statSales"><span class="loading-val">—</span></div>
+                <div class="stat-sub">Billed today</div>
+                <div class="stat-trend trend-up">↑ Active</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-label">Open Orders</span><span class="stat-icon">🔓</span></div>
+                <div class="stat-value" id="statOpen"><span class="loading-val">—</span></div>
+                <div class="stat-sub">Pending payment</div>
+                <div class="stat-trend trend-warn">⏳ In progress</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-label">Low Stock</span><span class="stat-icon">⚠️</span></div>
+                <div class="stat-value" id="statLowStock"><span class="loading-val">—</span></div>
+                <div class="stat-sub">Products below minimum</div>
+                <div class="stat-trend trend-down" id="trendStock">⚠ Review</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-label">Invoices Issued</span><span class="stat-icon">🧾</span></div>
+                <div class="stat-value" id="statInvoices"><span class="loading-val">—</span></div>
+                <div class="stat-sub">Closed today</div>
+                <div class="stat-trend trend-up">↑ Active</div>
+            </div>
+        </div>
+
+        <div class="quick-actions">
+            <a class="action-btn" href="../users/users.html"><span class="action-icon">👤</span><span>Users</span></a>
+            <a class="action-btn" href="../branches/branches.html"><span class="action-icon">🏢</span><span>Branches</span></a>
+            <a class="action-btn" href="../products/products.html"><span class="action-icon">🛒</span><span>Products</span></a>
+            <a class="action-btn" href="../inventory/inventory.html"><span class="action-icon">📦</span><span>Inventory</span></a>
+            <a class="action-btn" href="../orders/orders.html"><span class="action-icon">🧾</span><span>Orders</span></a>
+            <a class="action-btn" href="../tables/tables.html"><span class="action-icon">🍽️</span><span>Tables</span></a>
+            <a class="action-btn" href="../reports/reports.html"><span class="action-icon">📈</span><span>Reports</span></a>
+            <a class="action-btn" href="../sales/sales.html"><span class="action-icon">💳</span><span>Sales</span></a>
+        </div>
+
+        <div class="content-grid">
+            <div class="panel">
+                <div class="panel-header"><h3>👥 Recent Users</h3><a href="../users/users.html" class="panel-link">View all →</a></div>
+                <div class="panel-body" id="listUsers"><div class="empty-state"><span class="empty-icon">⏳</span><p>Loading users...</p></div></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header"><h3>🧾 Recent Orders</h3><a href="../orders/orders.html" class="panel-link">View all →</a></div>
+                <div class="panel-body" id="listOrders"><div class="empty-state"><span class="empty-icon">⏳</span><p>Loading orders...</p></div></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header"><h3>⚠️ Stock Alerts</h3><span>Products below minimum</span></div>
+                <div class="panel-body" id="listStock"><div class="empty-state"><span class="empty-icon">⏳</span><p>Loading inventory...</p></div></div>
+            </div>
+            <div class="panel">
+                <div class="panel-header"><h3>🏢 Registered Branches</h3><a href="../branches/branches.html" class="panel-link">View all →</a></div>
+                <div class="panel-body" id="listBranches"><div class="empty-state"><span class="empty-icon">⏳</span><p>Loading branches...</p></div></div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<script src="../../shared.js"></script>
+<script src="dashboard.js"></script>
+</body>
+</html>

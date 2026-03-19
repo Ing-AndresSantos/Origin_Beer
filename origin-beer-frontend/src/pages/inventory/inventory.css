@@ -1,0 +1,6 @@
+/* inventory.css */
+.placeholder-card { background: #161616; border: 1px solid #222; border-radius: 12px; padding: 64px 32px; text-align: center; color: #666; }
+.placeholder-icon { font-size: 64px; display: block; margin-bottom: 20px; opacity: 0.4; }
+.placeholder-card h3 { font-size: 18px; color: #999; margin-bottom: 10px; }
+.placeholder-card p { font-size: 14px; line-height: 1.6; }
+.placeholder-card code { background: #1c1600; color: #f5a623; padding: 2px 8px; border-radius: 4px; font-size: 13px; }

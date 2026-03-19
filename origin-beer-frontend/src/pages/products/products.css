@@ -1,0 +1,7 @@
+/* products.css */
+.product-info { display: flex; align-items: center; gap: 10px; }
+.product-icon { width: 36px; height: 36px; border-radius: 8px; background: #1c1600; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+.product-name { font-size: 13px; font-weight: 500; color: #e8e8e8; }
+.product-code { font-size: 11px; color: #666; margin-top: 1px; }
+.price { font-size: 13px; font-weight: 600; color: #f5a623; }
+.cost  { font-size: 11px; color: #666; margin-top: 1px; }
