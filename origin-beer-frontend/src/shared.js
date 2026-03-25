@@ -39,11 +39,11 @@ async function apiFetch(endpoint) {
 
 // ── SIDEBAR ───────────────────────────────────────────────────
 function initSidebar(activePage) {
-    const user = getUser();
+    const user   = getUser();
     const nameEl = document.getElementById('sidebarName');
     const roleEl = document.getElementById('sidebarRolee');
-    if (nameEl) nameEl.textContent = (user.nombre || '') + ' ' + (user.apellido || '');
-    if (roleEl) roleEl.textContent = user.rol || 'ADMIN';
+    if (nameEl) nameEl.textContent = (user.firstName || '') + ' ' + (user.lastName || '');  // ← actualizado
+    if (roleEl) roleEl.textContent = user.role || 'ADMIN';                                   // ← actualizado
 
     document.querySelectorAll('.nav-item').forEach(item => {
         if (item.getAttribute('href') && item.getAttribute('href').includes(activePage)) {

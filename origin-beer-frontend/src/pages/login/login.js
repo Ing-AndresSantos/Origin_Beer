@@ -25,7 +25,7 @@ async function login() {
         const response = await fetch(`${API}/api/auth/login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ correo: email, contrasena: password })
+            body: JSON.stringify({ email: email, password: password })  // ← actualizado
         });
 
         const text = await response.text();
@@ -36,11 +36,11 @@ async function login() {
             const data = JSON.parse(text);
             localStorage.setItem('token', data.token);
             localStorage.setItem('user', JSON.stringify({
-                nombre:   data.nombre,
-                apellido: data.apellido,
-                rol:      data.rol
+                firstName: data.firstName,   // ← actualizado
+                lastName:  data.lastName,    // ← actualizado
+                role:      data.role         // ← actualizado
             }));
-            showSuccess(`Welcome, ${data.nombre}. Redirecting...`);
+            showSuccess(`Welcome, ${data.firstName}. Redirecting...`);  // ← actualizado
             setTimeout(() => {
                 window.location.href = '../dashboard/dashboard.html';
             }, 1500);

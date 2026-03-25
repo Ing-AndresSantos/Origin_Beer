@@ -1,6 +1,6 @@
 package com.sentineldev.originbeer.security;
 
-import com.sentineldev.originbeer.repository.UsuarioRepository;
+import com.sentineldev.originbeer.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,11 +18,11 @@ import java.util.List;
 public class JwtAuthFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final UsuarioRepository usuarioRepository;
+    private final UserRepository userRepository;
 
-    public JwtAuthFilter(JwtService jwtService, UsuarioRepository usuarioRepository) {
+    public JwtAuthFilter(JwtService jwtService, UserRepository userRepository) {
         this.jwtService = jwtService;
-        this.usuarioRepository = usuarioRepository;
+        this.userRepository = userRepository;
     }
 
     @Override
@@ -45,22 +45,22 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        String correo = jwtService.extractCorreo(token);
-        String rol = jwtService.extractRol(token);
+        String email = jwtService.extractCorreo(token);
+        String role  = jwtService.extractRol(token);
 
-        usuarioRepository.findByCorreo(correo).ifPresent(usuario -> {
+        userRepository.findByEmail(email).ifPresent(user -> {
             UsernamePasswordAuthenticationToken auth =
                     new UsernamePasswordAuthenticationToken(
-                            correo,
+                            email,
                             null,
-                            List.of(new SimpleGrantedAuthority("ROLE_" + rol))
+                            List.of(new SimpleGrantedAuthority("ROLE_" + role))
                     );
             SecurityContextHolder.getContext().setAuthentication(auth);
         });
 
         filterChain.doFilter(request, response);
-
     }
+
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();

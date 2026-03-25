@@ -2,8 +2,8 @@ package com.sentineldev.originbeer.service;
 
 import com.sentineldev.originbeer.dto.LoginRequest;
 import com.sentineldev.originbeer.dto.LoginResponse;
-import com.sentineldev.originbeer.model.Usuario;
-import com.sentineldev.originbeer.repository.UsuarioRepository;
+import com.sentineldev.originbeer.model.User;
+import com.sentineldev.originbeer.repository.UserRepository;
 import com.sentineldev.originbeer.security.JwtService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,44 +13,45 @@ import java.time.LocalDateTime;
 @Service
 public class AuthService {
 
-    private final UsuarioRepository usuarioRepository;
+    private final UserRepository userRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
 
-    public AuthService(UsuarioRepository usuarioRepository,
+    public AuthService(UserRepository userRepository,
                        JwtService jwtService,
                        PasswordEncoder passwordEncoder) {
-        this.usuarioRepository = usuarioRepository;
+        this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.passwordEncoder = passwordEncoder;
     }
 
     public LoginResponse login(LoginRequest request) {
-        Usuario usuario = usuarioRepository.findByCorreo(request.getCorreo())
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        if (!usuario.getActivo()) {
-            throw new RuntimeException("Usuario inactivo");
+        if (!user.getActive()) {
+            throw new RuntimeException(
+                    "Your account has been deactivated. Please contact your establishment administrator to regain access."
+            );
         }
 
-        if (!passwordEncoder.matches(request.getContrasena(), usuario.getContrasena())) {
-            throw new RuntimeException("Contraseña incorrecta");
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new RuntimeException("Incorrect password");
         }
 
-        // Actualizar último acceso
-        usuario.setUltimoAcceso(LocalDateTime.now());
-        usuarioRepository.save(usuario);
+        user.setLastAccess(LocalDateTime.now());
+        userRepository.save(user);
 
         String token = jwtService.generateToken(
-                usuario.getCorreo(),
-                usuario.getRol().getNombre()
+                user.getEmail(),
+                user.getRole().getName()
         );
 
         return new LoginResponse(
                 token,
-                usuario.getNombre(),
-                usuario.getApellido(),
-                usuario.getRol().getNombre()
+                user.getFirstName(),
+                user.getLastName(),
+                user.getRole().getName()
         );
     }
 }
