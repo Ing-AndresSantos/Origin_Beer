@@ -5,16 +5,17 @@ initSidebar('dashboard');
 initDate();
 
 const user = getUser();
-document.getElementById('bannerName').textContent = user.nombre || 'Admin';
+document.getElementById('bannerName').textContent = user.firstName || 'Admin';
 document.getElementById('bannerDate').textContent = new Date().toLocaleDateString('en-US', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
 });
 
+// ── USERS ─────────────────────────────────────────────────────
 async function loadStats() {
-    const users = await apiFetch('/api/usuarios');
+    const users = await apiFetch('/api/users');
     if (users) {
-        const active = users.filter(u => u.activo).length;
-        document.getElementById('statUsers').textContent = active;
+        const active = users.filter(u => u.active).length;
+        document.getElementById('statUsers').textContent  = active;
         document.getElementById('trendUsers').textContent = `↑ ${users.length} total`;
 
         const list = document.getElementById('listUsers');
@@ -24,39 +25,42 @@ async function loadStats() {
             list.innerHTML = users.slice(0, 5).map(u => `
                 <div class="list-item">
                     <div class="list-item-left">
-                        <div class="list-avatar">${u.nombre.charAt(0)}${u.apellido.charAt(0)}</div>
+                        <div class="list-avatar">${(u.firstName || '?').charAt(0)}${(u.lastName || '?').charAt(0)}</div>
                         <div>
-                            <div class="list-name">${u.nombre} ${u.apellido}</div>
-                            <div class="list-sub">${u.correo}</div>
+                            <div class="list-name">${u.firstName} ${u.lastName}</div>
+                            <div class="list-sub">${u.email}</div>
                         </div>
                     </div>
-                    <span class="badge badge-${(u.rol?.nombre || 'admin').toLowerCase()}">${u.rol?.nombre || '—'}</span>
+                    <span class="badge badge-${(u.role?.name || 'admin').toLowerCase()}">${u.role?.name || '—'}</span>
                 </div>
             `).join('');
         }
+    } else {
+        document.getElementById('statUsers').textContent = '—';
     }
 }
 
+// ── BRANCHES ──────────────────────────────────────────────────
 async function loadBranches() {
-    const branches = await apiFetch('/api/sedes');
+    const branches = await apiFetch('/api/branches');
     if (branches) {
-        const active = branches.filter(s => s.activo).length;
-        document.getElementById('statBranches').textContent = active;
+        const active = branches.filter(b => b.active).length;
+        document.getElementById('statBranches').textContent  = active;
         document.getElementById('trendBranches').textContent = `↑ ${branches.length} registered`;
 
         const list = document.getElementById('listBranches');
         list.innerHTML = !branches.length
             ? `<div class="empty-state"><span class="empty-icon">🏢</span><p>No branches registered</p></div>`
-            : branches.slice(0, 5).map(s => `
+            : branches.slice(0, 5).map(b => `
                 <div class="list-item">
                     <div class="list-item-left">
                         <div class="list-avatar">🏢</div>
                         <div>
-                            <div class="list-name">${s.nombre}</div>
-                            <div class="list-sub">${s.ciudad || '—'} · ${s.codigo}</div>
+                            <div class="list-name">${b.name}</div>
+                            <div class="list-sub">${b.city || '—'} · ${b.code}</div>
                         </div>
                     </div>
-                    <span class="badge ${s.activo ? 'badge-active' : 'badge-inactive'}">${s.activo ? 'Active' : 'Inactive'}</span>
+                    <span class="badge ${b.active ? 'badge-active' : 'badge-inactive'}">${b.active ? 'Active' : 'Inactive'}</span>
                 </div>
             `).join('');
     } else {
@@ -66,64 +70,67 @@ async function loadBranches() {
     }
 }
 
+// ── PRODUCTS ──────────────────────────────────────────────────
 async function loadProducts() {
-    const products = await apiFetch('/api/productos');
+    const products = await apiFetch('/api/products');
     if (products) {
-        document.getElementById('statProducts').textContent = products.filter(p => p.activo).length;
+        document.getElementById('statProducts').textContent  = products.filter(p => p.active).length;
         document.getElementById('trendProducts').textContent = `↑ ${products.length} in catalog`;
     } else {
         document.getElementById('statProducts').textContent = '—';
     }
 }
 
+// ── ORDERS ────────────────────────────────────────────────────
 async function loadOrders() {
-    const orders = await apiFetch('/api/pedidos');
+    const orders = await apiFetch('/api/orders');
     if (orders) {
-        const today = new Date().toDateString();
-        const todayOrders = orders.filter(p => new Date(p.fechaCreacion).toDateString() === today);
+        const today       = new Date().toDateString();
+        const todayOrders = orders.filter(o => new Date(o.createdAt).toDateString() === today);
         document.getElementById('statOrders').textContent = todayOrders.length;
-        document.getElementById('statOpen').textContent = orders.filter(p => p.estado === 'ABIERTO').length;
+        document.getElementById('statOpen').textContent   = orders.filter(o => o.status === 'OPEN').length;
 
         const list = document.getElementById('listOrders');
         list.innerHTML = !orders.length
             ? `<div class="empty-state"><span class="empty-icon">🧾</span><p>No orders registered</p></div>`
-            : orders.slice(0, 5).map(p => `
+            : orders.slice(0, 5).map(o => `
                 <div class="list-item">
                     <div class="list-item-left">
                         <div class="list-avatar">🧾</div>
                         <div>
-                            <div class="list-name">Order #${p.idPedido}</div>
-                            <div class="list-sub">Table ${p.mesa?.numeroMesa || '—'}</div>
+                            <div class="list-name">Order #${o.idOrder}</div>
+                            <div class="list-sub">Table ${o.table?.tableNumber || '—'}</div>
                         </div>
                     </div>
-                    <span class="badge ${p.estado === 'ABIERTO' ? 'badge-open' : 'badge-paid'}">${p.estado}</span>
+                    <span class="badge ${o.status === 'OPEN' ? 'badge-open' : 'badge-paid'}">${o.status}</span>
                 </div>
             `).join('');
     } else {
         document.getElementById('statOrders').textContent = '—';
-        document.getElementById('statOpen').textContent = '—';
+        document.getElementById('statOpen').textContent   = '—';
         document.getElementById('listOrders').innerHTML =
             `<div class="empty-state"><span class="empty-icon">🧾</span><p>Endpoint not available yet</p></div>`;
     }
 }
 
+// ── INVENTORY ─────────────────────────────────────────────────
 async function loadInventory() {
-    const stock = await apiFetch('/api/inventario/stock-bajo');
+    const stock = await apiFetch('/api/inventory/low-stock');
     if (stock) {
         document.getElementById('statLowStock').textContent = stock.length;
         const list = document.getElementById('listStock');
         if (!stock.length) {
             list.innerHTML = `<div class="empty-state"><span class="empty-icon">✅</span><p>All inventory at normal levels</p></div>`;
             document.getElementById('trendStock').textContent = '✅ No alerts';
-            document.getElementById('trendStock').className = 'stat-trend trend-up';
+            document.getElementById('trendStock').className   = 'stat-trend trend-up';
         } else {
             list.innerHTML = stock.slice(0, 5).map(s => `
                 <div class="stock-bar">
                     <div>
-                        <div class="stock-name">${s.producto?.nombre || '—'}</div>
-                        <div class="stock-branch">${s.sede?.nombre || '—'}</div>
+                        <div class="stock-name">${s.product?.name || '—'}</div>
+                        <div class="stock-branch">${s.branch?.name || '—'}</div>
                     </div>
-                    <div class="stock-qty">${s.cantidad}</div>
+                    <div class="stock-qty">${s.quantity}</div>
                 </div>
             `).join('');
         }
@@ -134,20 +141,22 @@ async function loadInventory() {
     }
 }
 
+// ── INVOICES / SALES ──────────────────────────────────────────
 async function loadInvoices() {
-    const invoices = await apiFetch('/api/facturas');
+    const invoices = await apiFetch('/api/invoices');
     if (invoices) {
-        const today = new Date().toDateString();
-        const todayInvoices = invoices.filter(f => new Date(f.fechaEmision).toDateString() === today);
-        const total = todayInvoices.reduce((sum, f) => sum + (f.total || 0), 0);
+        const today         = new Date().toDateString();
+        const todayInvoices = invoices.filter(f => new Date(f.issuedAt).toDateString() === today);
+        const total         = todayInvoices.reduce((sum, f) => sum + (f.total || 0), 0);
         document.getElementById('statInvoices').textContent = todayInvoices.length;
-        document.getElementById('statSales').textContent = '$ ' + total.toLocaleString('en-US');
+        document.getElementById('statSales').textContent    = '$ ' + total.toLocaleString('en-US');
     } else {
         document.getElementById('statInvoices').textContent = '—';
-        document.getElementById('statSales').textContent = '—';
+        document.getElementById('statSales').textContent    = '—';
     }
 }
 
+// ── INIT ──────────────────────────────────────────────────────
 loadStats();
 loadBranches();
 loadProducts();
