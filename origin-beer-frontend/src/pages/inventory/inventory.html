@@ -8,27 +8,164 @@
     <link rel="stylesheet" href="inventory.css">
 </head>
 <body>
+
 <aside class="sidebar" id="sidebar"></aside>
+
 <main class="main">
     <div class="topbar">
-        <div class="topbar-title">📦 Inventory</div>
+        <div class="topbar-title">Inventory Management</div>
         <div class="topbar-right">
             <div class="badge-online">Server active</div>
             <span id="todayDate"></span>
         </div>
     </div>
+
     <div class="content">
         <div class="page-header">
-            <div><h2>📦 Inventory</h2><p>Inventory module — Origin Beer</p></div>
+            <div>
+                <h2>📦 Inventory</h2>
+                <p>Stock per branch — Origin Beer</p>
+            </div>
+            <button class="btn-new" onclick="openAddModal()">＋ Add to Branch</button>
         </div>
-        <div class="placeholder-card">
-            <div class="placeholder-icon">📦</div>
-            <h3>Module under construction</h3>
-            <p>This module is ready to be developed.<br>
-               Connect to <code>/api/inventory</code> to load data.</p>
+
+        <!-- Stats -->
+        <div class="stats-mini">
+            <div class="stat-mini">
+                <span class="stat-mini-icon">📦</span>
+                <div><div class="stat-mini-val" id="statTotalItems">—</div><div class="stat-mini-label">Total Items</div></div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">🏢</span>
+                <div><div class="stat-mini-val" id="statBranches">—</div><div class="stat-mini-label">Branches</div></div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">⚠️</span>
+                <div><div class="stat-mini-val" id="statLowStock">—</div><div class="stat-mini-label">Low Stock</div></div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">🛒</span>
+                <div><div class="stat-mini-val" id="statProducts">—</div><div class="stat-mini-label">Products</div></div>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div class="search-box">
+                <span>🔍</span>
+                <input type="text" id="search" placeholder="Search by product or branch..." oninput="filter()">
+            </div>
+            <select class="filter-select" id="filterBranch" onchange="filter()">
+                <option value="">All branches</option>
+            </select>
+            <select class="filter-select" id="filterStock" onchange="filter()">
+                <option value="">All stock levels</option>
+                <option value="low">⚠️ Low stock</option>
+                <option value="ok">✅ Normal</option>
+            </select>
+        </div>
+
+        <div class="result-info" id="resultInfo"></div>
+
+        <!-- Table -->
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Branch</th>
+                        <th>Category</th>
+                        <th>Stock</th>
+                        <th>Min. Stock</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="inventoryTable">
+                    <tr><td colspan="7"><div class="empty-state"><span class="empty-icon">⏳</span><p>Loading inventory...</p></div></td></tr>
+                </tbody>
+            </table>
+            <div class="pagination">
+                <span id="pageInfo">Loading...</span>
+                <div class="pagination-btns" id="pageBtns"></div>
+            </div>
         </div>
     </div>
 </main>
+
+<!-- ── EDIT STOCK MODAL ──────────────────────────────────────── -->
+<div class="modal-overlay" id="stockModalOverlay">
+    <div class="modal">
+        <div class="modal-header">
+            <div>
+                <h3>📦 Update Stock</h3>
+                <p id="stockModalSub">Set quantity for this product at this branch</p>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="stock-target" id="stockTarget"></div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Quantity <span class="required">*</span></label>
+                    <input type="number" id="sQuantity" placeholder="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label>Min. Stock Alert</label>
+                    <input type="number" id="sMinStock" placeholder="5" min="0" value="5">
+                </div>
+            </div>
+
+            <div id="stockError" class="form-error" style="display:none"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeStockModal()">Cancel</button>
+            <button class="btn-save" id="btnSaveStock" onclick="saveStock()">Update Stock</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── ADD TO BRANCH MODAL ───────────────────────────────────── -->
+<div class="modal-overlay" id="addModalOverlay">
+    <div class="modal">
+        <div class="modal-header">
+            <div>
+                <h3>➕ Add Product to Branch</h3>
+                <p>Assign a product and initial stock to a branch</p>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>Branch <span class="required">*</span></label>
+                <select id="aBranch">
+                    <option value="">— Select a branch —</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Product <span class="required">*</span></label>
+                <select id="aProduct">
+                    <option value="">— Select a product —</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Initial Quantity <span class="required">*</span></label>
+                    <input type="number" id="aQuantity" placeholder="0" min="0" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Min. Stock Alert</label>
+                    <input type="number" id="aMinStock" placeholder="5" min="0" value="5">
+                </div>
+            </div>
+            <div id="addError" class="form-error" style="display:none"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeAddModal()">Cancel</button>
+            <button class="btn-save" id="btnSaveAdd" onclick="saveAdd()">Add to Branch</button>
+        </div>
+    </div>
+</div>
+
 <script src="../../shared.js"></script>
 <script src="inventory.js"></script>
 </body>

@@ -1,0 +1,170 @@
+/* ════════════════════════════════════════
+   CASHIER DASHBOARD — dashboard.css
+   ════════════════════════════════════════ */
+
+:root {
+    --dash-card-bg:             #161616;
+    --dash-card-border:         #222222;
+    --dash-card-hover:          #333333;
+    --dash-text:                #e8e8e8;
+    --dash-muted:               #666666;
+    --panel-border:             #222222;
+    --list-border:              #1a1a1a;
+    --avatar-bg:                #1c1600;
+    --avatar-text:              #f5a623;
+    --loading-val-color:        #666666;
+    --welcome-sub:              #999999;
+    --welcome-bg-start:         #1c1600;
+    --welcome-bg-end:           #2a1f00;
+    --welcome-border:           #3a2800;
+    --trend-up-bg:              #1a2a1a;
+    --trend-up-text:            #81c784;
+    --trend-down-bg:            #2a1a1a;
+    --trend-down-text:          #e57373;
+    --trend-warn-bg:            #2a2000;
+    --trend-warn-text:          #ffb74d;
+    --action-bg:                #161616;
+    --action-border:            #222222;
+    --action-text:              #999999;
+    /* Cashier azul */
+    --cashier-banner-start:     #0d1a2e;
+    --cashier-banner-end:       #091220;
+    --cashier-banner-border:    #1a3a5a;
+    --cashier-accent:           #64b5f6;
+    --cashier-badge-bg:         #0d1a2e;
+    --cashier-badge-border:     #1a3a5a;
+    --cashier-hl-bg:            #0d1a2e;
+    --cashier-hl-border:        #1a3a5a;
+    --cashier-hover-bg:         #0d1a2e;
+    --cashier-panel-link:       #666666;
+    --cashier-panel-link-hover: #64b5f6;
+}
+
+body.light-mode {
+    --dash-card-bg:             #ffffff;
+    --dash-card-border:         #e8e8e8;
+    --dash-card-hover:          #1976d2;
+    --dash-text:                #1a1a1a;
+    --dash-muted:               #999999;
+    --panel-border:             #e8e8e8;
+    --list-border:              #f0f0f0;
+    --avatar-bg:                #fff3dc;
+    --avatar-text:              #c47b00;
+    --loading-val-color:        #cccccc;
+    --welcome-sub:              #888888;
+    --welcome-bg-start:         #fffbf0;
+    --welcome-bg-end:           #fff8e1;
+    --welcome-border:           #ffe082;
+    --trend-up-bg:              #e8f5e9;
+    --trend-up-text:            #2e7d32;
+    --trend-down-bg:            #ffebee;
+    --trend-down-text:          #c62828;
+    --trend-warn-bg:            #fff3e0;
+    --trend-warn-text:          #e65100;
+    --action-bg:                #ffffff;
+    --action-border:            #e8e8e8;
+    --action-text:              #666666;
+    /* Cashier azul claro */
+    --cashier-banner-start:     #e3f2fd;
+    --cashier-banner-end:       #f3f5ff;
+    --cashier-banner-border:    #bbdefb;
+    --cashier-accent:           #1976d2;
+    --cashier-badge-bg:         #e3f2fd;
+    --cashier-badge-border:     #bbdefb;
+    --cashier-hl-bg:            #f3f5ff;
+    --cashier-hl-border:        #bbdefb;
+    --cashier-hover-bg:         #e3f2fd;
+    --cashier-panel-link:       #1976d2;
+    --cashier-panel-link-hover: #0d47a1;
+}
+
+/* ── WELCOME BANNER BASE ── */
+.welcome-banner {
+    background: linear-gradient(135deg, var(--welcome-bg-start) 0%, var(--welcome-bg-end) 100%);
+    border: 1px solid var(--welcome-border);
+    border-radius: 12px;
+    padding: 24px 28px;
+    margin-bottom: 28px;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.welcome-banner h1 { font-size: 22px; font-weight: 700; color: var(--dash-text); }
+.welcome-banner p  { color: var(--welcome-sub); font-size: 13px; margin-top: 4px; }
+
+/* ── CASHIER BANNER ── */
+.cashier-banner {
+    background: linear-gradient(135deg, var(--cashier-banner-start) 0%, var(--cashier-banner-end) 100%);
+    border: 1px solid var(--cashier-banner-border);
+}
+.cashier-banner h1 { color: var(--cashier-accent); }
+
+.role-badge-large {
+    font-size: 11px; font-weight: 700; letter-spacing: 3px;
+    color: var(--cashier-accent);
+    background: var(--cashier-badge-bg);
+    border: 1px solid var(--cashier-badge-border);
+    padding: 8px 16px; border-radius: 6px; opacity: 0.9;
+}
+
+.cashier-grid         { grid-template-columns: repeat(4, 1fr) !important; }
+.cashier-actions      { grid-template-columns: repeat(4, 1fr) !important; }
+.cashier-content-grid { grid-template-columns: 1fr 1fr !important; }
+
+.highlight-card {
+    background: var(--cashier-hl-bg) !important;
+    border-color: var(--cashier-hl-border) !important;
+}
+.highlight-card .stat-value { color: var(--cashier-accent) !important; }
+
+.primary-action { border-color: var(--cashier-accent) !important; color: var(--cashier-accent) !important; }
+.primary-action:hover { background: var(--cashier-hover-bg) !important; }
+
+.action-btn {
+    background: var(--action-bg);
+    border: 1px solid var(--action-border);
+    border-radius: 10px; padding: 16px 12px; text-align: center;
+    cursor: pointer; transition: all 0.15s; text-decoration: none;
+    color: var(--action-text); font-family: inherit; font-size: inherit;
+}
+.action-btn:hover {
+    border-color: var(--cashier-accent);
+    color: var(--cashier-accent);
+    background: var(--cashier-hover-bg);
+}
+.action-btn .action-icon { font-size: 24px; display: block; margin-bottom: 6px; }
+.action-btn span         { font-size: 11px; font-weight: 600; letter-spacing: 0.5px; }
+
+.panel-link {
+    background: transparent; border: none; padding: 0; cursor: pointer;
+    font-size: 11px; color: var(--cashier-panel-link);
+    text-decoration: none; font-family: inherit; transition: color 0.15s;
+}
+.panel-link:hover { color: var(--cashier-panel-link-hover); }
+
+.invoice-amount { font-size: 13px; font-weight: 700; color: var(--cashier-accent); }
+
+/* ── SHARED STYLES ── */
+.stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+.stat-card  { background: var(--dash-card-bg); border: 1px solid var(--dash-card-border); border-radius: 10px; padding: 20px; transition: border-color 0.2s; }
+.stat-card:hover { border-color: var(--dash-card-hover); }
+.stat-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.stat-label  { color: var(--dash-muted); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; font-weight: 600; }
+.stat-icon   { font-size: 20px; opacity: 0.8; }
+.stat-value  { font-size: 32px; font-weight: 700; color: var(--dash-text); line-height: 1; }
+.stat-sub    { color: var(--dash-muted); font-size: 12px; margin-top: 6px; }
+.stat-trend  { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; border-radius: 20px; margin-top: 8px; }
+.trend-up    { background: var(--trend-up-bg);   color: var(--trend-up-text); }
+.trend-down  { background: var(--trend-down-bg); color: var(--trend-down-text); }
+.trend-warn  { background: var(--trend-warn-bg); color: var(--trend-warn-text); }
+.loading-val { color: var(--loading-val-color); font-size: 24px; }
+.quick-actions { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 28px; }
+.content-grid  { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 28px; }
+.panel { background: var(--dash-card-bg); border: 1px solid var(--panel-border); border-radius: 10px; overflow: hidden; }
+.panel-header  { padding: 16px 20px; border-bottom: 1px solid var(--panel-border); display: flex; align-items: center; justify-content: space-between; }
+.panel-header h3 { font-size: 14px; font-weight: 600; color: var(--dash-text); }
+.panel-body    { padding: 16px 20px; }
+.list-item     { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--list-border); }
+.list-item:last-child { border-bottom: none; }
+.list-item-left { display: flex; align-items: center; gap: 10px; }
+.list-avatar   { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; background: var(--avatar-bg); color: var(--avatar-text); }
+.list-name     { font-size: 13px; color: var(--dash-text); font-weight: 500; }
+.list-sub      { font-size: 11px; color: var(--dash-muted); margin-top: 1px; }

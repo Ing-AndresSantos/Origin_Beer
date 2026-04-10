@@ -1,3 +1,24 @@
+:root {
+    --modal-bg: #161616;
+    --modal-border: #2a2a2a;
+    --modal-input-bg: #111;
+    --modal-input-border: #2a2a2a;
+    --modal-text: #e8e8e8;
+    --modal-muted: #666;
+    --modal-overlay: rgba(0,0,0,0.78);
+    --modal-card: #1a1a1a;
+}
+
+body.light-mode {
+    --modal-bg: #ffffff;
+    --modal-border: #e8e8e8;
+    --modal-input-bg: #ffffff;
+    --modal-input-border: #dddddd;
+    --modal-text: #1a1a1a;
+    --modal-muted: #888;
+    --modal-overlay: rgba(0,0,0,0.4);
+    --modal-card: #f9f9f9;
+}
 /* ── AVATAR & USER INFO ── */
 .avatar {
     width: 36px; height: 36px;
@@ -14,6 +35,20 @@
 .badge-admin   { background: #1c1600; color: #f5a623; }
 .badge-cashier { background: #0d1a2e; color: #64b5f6; }
 .badge-waiter  { background: #0d2211; color: #81c784; }
+
+/* ── BRANCHES COLUMN ── */
+.user-branches { display: flex; flex-wrap: wrap; gap: 4px; max-width: 180px; }
+
+.badge-branch {
+    font-size: 10px;
+    padding: 3px 7px;
+    border-radius: 20px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    background: var(--badge-cajero-bg);
+    color: var(--badge-cajero-text);
+    white-space: nowrap;
+}
 
 /* ── STATUS TOGGLE ── */
 .toggle-wrap { display: flex; align-items: center; gap: 8px; }

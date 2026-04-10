@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="../../shared.css">
     <link rel="stylesheet" href="users.css">
 </head>
+
 <body>
 
 <aside class="sidebar" id="sidebar"></aside>
@@ -72,9 +73,9 @@
                     <tr>
                         <th>User</th>
                         <th>Role</th>
+                        <th>Branches</th>
                         <th>Status</th>
                         <th>Last Access</th>
-                        <th>Created</th>
                         <th style="text-align:right">Actions</th>
                     </tr>
                 </thead>
@@ -91,7 +92,7 @@
 </main>
 
 <!-- ── MODAL: NEW USER ── -->
-<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event, closeNewUserModal)">
+<div class="modal-overlay" id="modalOverlay">
     <div class="modal">
         <div class="modal-header">
             <div>
@@ -143,7 +144,7 @@
 </div>
 
 <!-- ── MODAL: CHANGE ROLE ── -->
-<div class="modal-overlay" id="roleModalOverlay" onclick="handleOverlayClick(event, closeRoleModal)">
+<div class="modal-overlay" id="roleModalOverlay">
     <div class="modal modal-sm">
         <div class="modal-header">
             <div>

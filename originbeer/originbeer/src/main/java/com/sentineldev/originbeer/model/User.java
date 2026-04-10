@@ -1,5 +1,6 @@
 package com.sentineldev.originbeer.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.time.LocalDateTime;
@@ -27,6 +28,7 @@ public class User {
     @Column(name = "email", nullable = false, length = 120, unique = true)
     private String email;
 
+    @JsonIgnore
     @Column(name = "password", nullable = false, length = 255)
     private String password;
 

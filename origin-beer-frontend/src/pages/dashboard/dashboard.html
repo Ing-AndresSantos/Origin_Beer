@@ -119,5 +119,13 @@
 
 <script src="../../shared.js"></script>
 <script src="dashboard.js"></script>
+<script>
+    // El toggle de tema lo maneja shared.js vía btn-theme-toggle en el sidebar.
+    // Este bloque garantiza que el tema guardado se aplique ANTES del primer render.
+    (function () {
+        const saved = localStorage.getItem('theme') || 'dark';
+        if (saved === 'light') document.body.classList.add('light-mode');
+    })();
+</script>
 </body>
 </html>
