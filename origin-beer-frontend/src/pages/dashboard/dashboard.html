@@ -24,10 +24,11 @@
 
         <div class="welcome-banner">
             <div>
-                <h1>Welcome back, <span id="bannerName">Admin</span>! 👋</h1>
+                <h1>Welcome back, <span id="bannerName">Admin</span></h1>
                 <p>Here's your summary for today — <span id="bannerDate"></span></p>
             </div>
-            <div class="beer-icon">🍺</div>
+            <div class="beer-icon">
+                <img src="../Logo/logo origeen beer.png" alt="Origin Beer" class="logo-icon"></div>
         </div>
 
         <div class="stats-grid">
@@ -119,5 +120,13 @@
 
 <script src="../../shared.js"></script>
 <script src="dashboard.js"></script>
+<script>
+    // El toggle de tema lo maneja shared.js vía btn-theme-toggle en el sidebar.
+    // Este bloque garantiza que el tema guardado se aplique ANTES del primer render.
+    (function () {
+        const saved = localStorage.getItem('theme') || 'dark';
+        if (saved === 'light') document.body.classList.add('light-mode');
+    })();
+</script>
 </body>
 </html>

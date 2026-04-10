@@ -26,6 +26,7 @@
                 <h2>🛒 Products</h2>
                 <p>Origin Beer master product catalog</p>
             </div>
+            <button class="btn-new" onclick="openCreateModal()">＋ New Product</button>
         </div>
 
         <div class="stats-mini">
@@ -72,10 +73,11 @@
                         <th>Sale Price</th>
                         <th>Cost Price</th>
                         <th>Status</th>
+                        <th></th>
                     </tr>
                 </thead>
                 <tbody id="productsTable">
-                    <tr><td colspan="6"><div class="empty-state"><span class="empty-icon">⏳</span><p>Loading products...</p></div></td></tr>
+                    <tr><td colspan="7"><div class="empty-state"><span class="empty-icon">⏳</span><p>Loading products...</p></div></td></tr>
                 </tbody>
             </table>
             <div class="pagination">
@@ -85,6 +87,70 @@
         </div>
     </div>
 </main>
+
+<!-- ── CREATE / EDIT MODAL ───────────────────────────────────── -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <div class="modal-header">
+            <div>
+                <h3 id="modalTitle">🛒 New Product</h3>
+                <p>Fill in the fields to register a product</p>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Code <span class="required">*</span></label>
+                    <input type="text" id="fCode" placeholder="e.g. BEV-001" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label>Category <span class="required">*</span></label>
+                    <select id="fCategory">
+                        <option value="">— Select a category —</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Name <span class="required">*</span></label>
+                <input type="text" id="fName" placeholder="Product display name" maxlength="120">
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <input type="text" id="fDescription" placeholder="Optional description" maxlength="300">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Unit <span class="required">*</span></label>
+                    <select id="fUnit">
+                        <option value="unit">Unit</option>
+                        <option value="ml">ml</option>
+                        <option value="g">g</option>
+                        <option value="kg">kg</option>
+                        <option value="l">l</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Sale Price <span class="required">*</span></label>
+                    <input type="number" id="fSalePrice" placeholder="0.00" min="0" step="0.01">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Cost Price</label>
+                <input type="number" id="fCostPrice" placeholder="0.00" min="0" step="0.01">
+            </div>
+
+            <div id="formError" class="form-error" style="display:none"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+            <button class="btn-save" id="btnSave" onclick="saveProduct()">Create Product</button>
+        </div>
+    </div>
+</div>
 
 <script src="../../shared.js"></script>
 <script src="products.js"></script>
