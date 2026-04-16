@@ -40,9 +40,9 @@ async function loadOrders() {
 async function loadInvoices() {
     const invoices = await apiFetch('/api/facturas');
     if (invoices) {
-        const today        = new Date().toDateString();
+        const today         = new Date().toDateString();
         const todayInvoices = invoices.filter(f => new Date(f.fechaEmision).toDateString() === today);
-        const total        = todayInvoices.reduce((s, f) => s + (f.total || 0), 0);
+        const total         = todayInvoices.reduce((s, f) => s + (f.total || 0), 0);
 
         document.getElementById('statInvoices').textContent   = todayInvoices.length;
         document.getElementById('statSalesToday').textContent = '$ ' + total.toLocaleString('en-US');
@@ -73,7 +73,7 @@ async function loadTables() {
     const tables = await apiFetch('/api/mesas');
     if (tables) {
         const occupied = tables.filter(t => t.estado === 'OCUPADA').length;
-        document.getElementById('statTables').textContent   = occupied;
+        document.getElementById('statTables').textContent  = occupied;
         document.getElementById('trendTables').textContent = `${tables.length} total`;
     } else {
         document.getElementById('statTables').textContent = '—';
@@ -84,53 +84,47 @@ loadOrders();
 loadInvoices();
 loadTables();
 
-// Prevenir navegación - mantener dashboard independiente
-document.getElementById('btnCloseOrders')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    console.log('Close orders button clicked - staying in cashier dashboard');
+// ── NAVEGACIÓN ────────────────────────────────────────────────
+document.getElementById('btnCloseOrders')?.addEventListener('click', () => {
+    window.location.href = '../../admin/orders/orders.html';
 });
 
-document.getElementById('btnSales')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    console.log('Sales button clicked - staying in cashier dashboard');
+document.getElementById('btnSales')?.addEventListener('click', () => {
+    window.location.href = '../../admin/sales/sales.html';
 });
 
-document.getElementById('btnTables')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    console.log('Tables button clicked - staying in cashier dashboard');
+document.getElementById('btnInventory')?.addEventListener('click', () => {
+    window.location.href = '../inventory/inventory.html';
 });
 
-document.getElementById('btnPaymentMethods')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    console.log('Payment methods button clicked - staying in cashier dashboard');
+document.getElementById('btnTables')?.addEventListener('click', () => {
+    window.location.href = '../../admin/tables/tables.html';
 });
 
-document.getElementById('btnTransactions')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    console.log('Transactions button clicked - staying in cashier dashboard');
+document.getElementById('btnPaymentMethods')?.addEventListener('click', () => {
+    window.location.href = '../../admin/sales/sales.html';
 });
 
-document.getElementById('btnReports')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    console.log('Reports button clicked - staying in cashier dashboard');
+document.getElementById('btnTransactions')?.addEventListener('click', () => {
+    window.location.href = '../../admin/sales/sales.html';
 });
 
-document.getElementById('btnReconciliation')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    console.log('Reconciliation button clicked - staying in cashier dashboard');
+document.getElementById('btnReports')?.addEventListener('click', () => {
+    window.location.href = '../../admin/reports/reports.html';
 });
 
-document.getElementById('btnRefunds')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    console.log('Refunds button clicked - staying in cashier dashboard');
+document.getElementById('btnReconciliation')?.addEventListener('click', () => {
+    window.location.href = '../../admin/reports/reports.html';
 });
 
-document.getElementById('btnViewAllPendingOrders')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    console.log('View all pending orders clicked - staying in cashier dashboard');
+document.getElementById('btnRefunds')?.addEventListener('click', () => {
+    window.location.href = '../../admin/orders/orders.html';
 });
 
-document.getElementById('btnViewAllInvoices')?.addEventListener('click', (e) => {
-    e.preventDefault();
-    console.log('View all invoices clicked - staying in cashier dashboard');
+document.getElementById('btnViewAllPendingOrders')?.addEventListener('click', () => {
+    window.location.href = '../../admin/orders/orders.html';
+});
+
+document.getElementById('btnViewAllInvoices')?.addEventListener('click', () => {
+    window.location.href = '../../admin/sales/sales.html';
 });

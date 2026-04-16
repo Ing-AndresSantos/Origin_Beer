@@ -147,7 +147,7 @@ function initDate() {
 function getSidebarNav(base = '../') {
     return `
     <div class="sidebar-logo">
-        <span>🍺</span>
+        <img src="../Logo/logo origeen beer.png" alt="Origin Beer" class="logo-icon">
         <div><h2>Origin Beer</h2><p>Management System</p></div>
     </div>
     <div class="sidebar-user">
@@ -185,6 +185,7 @@ function getCashierSidebar(base = '../') {
         <span>🍺</span>
         <div><h2>Origin Beer</h2><p>Cashier Station</p></div>
     </div>
+
     <div class="sidebar-user">
         <div class="user-name" id="sidebarName">Loading...</div>
         <div class="user-role" id="sidebarRolee">—</div>
@@ -197,6 +198,8 @@ function getCashierSidebar(base = '../') {
         <a class="nav-item" href="${base}sales/sales.html"><span class="nav-icon">💳</span> Sales</a>
         <a class="nav-item" href="${base}orders/orders.html"><span class="nav-icon">🧾</span> Orders</a>
         <a class="nav-item" href="${base}tables/tables.html"><span class="nav-icon">🪑</span> Tables</a>
+        <div class="nav-section">Inventory</div>
+        <a class="nav-item" href="${base}inventory/inventory.html"><span class="nav-icon">📦</span> Branch Inventory</a>
         <div class="nav-section">Reports</div>
         <a class="nav-item" href="${base}reports/reports.html"><span class="nav-icon">📈</span> Reports</a>
     </nav>

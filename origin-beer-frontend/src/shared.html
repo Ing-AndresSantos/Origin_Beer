@@ -1,0 +1,93 @@
+// ── SIDEBAR HTML (shared nav) ─────────────────────────────────
+function getSidebarNav(base = '../') {
+    return `
+    <div class="sidebar-logo">
+        <img src="../Logo/logo origeen beer.png" alt="Origin Beer" class="logo-icon">
+        <div><h2>Origin Beer</h2><p>Management System</p></div>
+    </div>
+    <div class="sidebar-user">
+        <div class="user-name" id="sidebarName">Loading...</div>
+        <div class="user-role" id="sidebarRolee">—</div>
+        <div class="user-branch" id="sidebarBranch" style="display:none"></div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section">Main</div>
+        <a class="nav-item" href="${base}dashboard/dashboard.html"><span class="nav-icon">📊</span> Dashboard</a>
+        <div class="nav-section">Administration</div>
+        <a class="nav-item" href="${base}users/users.html"><span class="nav-icon">👥</span> Users</a>
+        <a class="nav-item" href="${base}branches/branches.html"><span class="nav-icon">🏢</span> Branches</a>
+        <div class="nav-section">Inventory</div>
+        <a class="nav-item" href="${base}products/products.html"><span class="nav-icon">🛒</span> Products</a>
+        <a class="nav-item" href="${base}inventory/inventory.html"><span class="nav-icon">📦</span> Inventory</a>
+        <div class="nav-section">Operations</div>
+        <a class="nav-item" href="${base}orders/orders.html"><span class="nav-icon">🧾</span> Orders</a>
+        <a class="nav-item" href="${base}tables/tables.html"><span class="nav-icon">🪑</span> Tables</a>
+        <a class="nav-item" href="${base}sales/sales.html"><span class="nav-icon">💳</span> Sales</a>
+        <div class="nav-section">Analytics</div>
+        <a class="nav-item" href="${base}reports/reports.html"><span class="nav-icon">📈</span> Reports</a>
+    </nav>
+    <div class="sidebar-footer">
+        <button class="btn-theme-toggle" onclick="toggleTheme()">🌙 Toggle Theme</button>
+        <button class="btn-logout" onclick="logout()">🚪 Log Out</button>
+    </div>
+    `;
+}
+
+// ── SIDEBAR HTML (cashier nav) ────────────────────────────────
+function getCashierSidebar(base = '../') {
+    return `
+    <div class="sidebar-logo">
+        <span>🍺</span>
+        <div><h2>Origin Beer</h2><p>Cashier Station</p></div>
+    </div>
+
+    <div class="sidebar-user">
+        <div class="user-name" id="sidebarName">Loading...</div>
+        <div class="user-role" id="sidebarRolee">—</div>
+        <div class="user-branch" id="sidebarBranch" style="display:none"></div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section">Main</div>
+        <a class="nav-item" href="${base}dashboard/dashboard.html"><span class="nav-icon">💳</span> Dashboard</a>
+        <div class="nav-section">Operations</div>
+        <a class="nav-item" href="${base}sales/sales.html"><span class="nav-icon">💳</span> Sales</a>
+        <a class="nav-item" href="${base}orders/orders.html"><span class="nav-icon">🧾</span> Orders</a>
+        <a class="nav-item" href="${base}tables/tables.html"><span class="nav-icon">🪑</span> Tables</a>
+        <div class="nav-section">Inventory</div>
+        <a class="nav-item" href="${base}inventory/inventory.html"><span class="nav-icon">📦</span> Branch Inventory</a>
+        <div class="nav-section">Reports</div>
+        <a class="nav-item" href="${base}reports/reports.html"><span class="nav-icon">📈</span> Reports</a>
+    </nav>
+    <div class="sidebar-footer">
+        <button class="btn-theme-toggle" onclick="toggleTheme()">🌙 Toggle Theme</button>
+        <button class="btn-logout" onclick="logout()">🚪 Log Out</button>
+    </div>
+    `;
+}
+
+// ── SIDEBAR HTML (waiter nav) ────────────────────────────────
+function getWaiterSidebar(base = '../') {
+    return `
+    <div class="sidebar-logo">
+        <span>🍺</span>
+        <div><h2>Origin Beer</h2><p>Waiter Station</p></div>
+    </div>
+    <div class="sidebar-user">
+        <div class="user-name" id="sidebarName">Loading...</div>
+        <div class="user-role" id="sidebarRolee">—</div>
+        <div class="user-branch" id="sidebarBranch" style="display:none"></div>
+    </div>
+    <nav class="sidebar-nav">
+        <div class="nav-section">Main</div>
+        <a class="nav-item" href="${base}dashboard/dashboard.html"><span class="nav-icon">🍽️</span> Dashboard</a>
+        <div class="nav-section">Operations</div>
+        <a class="nav-item" href="${base}tables/tables.html"><span class="nav-icon">🪑</span> Tables</a>
+        <a class="nav-item" href="${base}orders/orders.html"><span class="nav-icon">🧾</span> Orders</a>
+        <a class="nav-item" href="${base}products/products.html"><span class="nav-icon">🛒</span> Menu</a>
+    </nav>
+    <div class="sidebar-footer">
+        <button class="btn-theme-toggle" onclick="toggleTheme()">🌙 Toggle Theme</button>
+        <button class="btn-logout" onclick="logout()">🚪 Log Out</button>
+    </div>
+    `;
+}

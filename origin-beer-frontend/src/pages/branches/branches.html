@@ -66,7 +66,7 @@
 </main>
 
 <!-- ── CREATE / EDIT MODAL ───────────────────────────────────── -->
-<div class="modal-overlay" id="modalOverlay" onclick="closeModalIfOutside(event)">
+<div class="modal-overlay" id="modalOverlay">
     <div class="modal">
         <div class="modal-header">
             <h3 id="modalTitle">🏢 New Branch</h3>
@@ -115,7 +115,7 @@
 </div>
 
 <!-- ── ASSIGN USERS MODAL ────────────────────────────────────── -->
-<div class="modal-overlay" id="assignOverlay" onclick="closeAssignIfOutside(event)">
+<div class="modal-overlay" id="assignOverlay">
     <div class="modal modal-wide">
         <div class="modal-header">
             <h3>👥 Assign Users — <span id="assignBranchName"></span></h3>
@@ -136,6 +136,7 @@
 </div>
 
 <script src="../../shared.js"></script>
+<script src="../../shared.html"></script>
 <script src="branches.js"></script>
 </body>
 </html>

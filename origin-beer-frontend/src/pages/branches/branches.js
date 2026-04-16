@@ -131,9 +131,6 @@ function closeCreateModal() {
     editingId = null;
 }
 
-function closeModalIfOutside(event) {
-    if (event.target === document.getElementById('modalOverlay')) closeCreateModal();
-}
 
 function clearForm() {
     ['fCode', 'fName', 'fCity', 'fPhone', 'fAddress', 'fEmail'].forEach(id => {
@@ -282,9 +279,6 @@ function closeAssignModal() {
     assigningId = null;
 }
 
-function closeAssignIfOutside(event) {
-    if (event.target === document.getElementById('assignOverlay')) closeAssignModal();
-}
 
 async function saveAssignments() {
     hideError('assignError');

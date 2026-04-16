@@ -9,6 +9,7 @@
 </head>
 <body>
 <aside class="sidebar" id="sidebar"></aside>
+
 <main class="main">
     <div class="topbar">
         <div class="topbar-title">🪑 Tables</div>
@@ -17,19 +18,159 @@
             <span id="todayDate"></span>
         </div>
     </div>
+
     <div class="content">
         <div class="page-header">
-            <div><h2>🪑 Tables</h2><p>Tables module — Origin Beer</p></div>
+            <div>
+                <h2 id="branchTitle">🪑 Tables</h2>
+                <p>View and manage tables by branch</p>
+            </div>
+            <!-- Only shown for ADMIN via JS -->
+            <button class="btn-primary" id="btnAddTable" onclick="openCreateModal()" style="display:none">
+                + New Table
+            </button>
         </div>
-        <div class="placeholder-card">
-            <div class="placeholder-icon">🪑</div>
-            <h3>Module under construction</h3>
-            <p>This module is ready to be developed.<br>
-               Connect to <code>/api/tables</code> to load data.</p>
+
+        <!-- Stats -->
+        <div class="stats-mini" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="stat-mini">
+                <span class="stat-mini-icon">🪑</span>
+                <div><div class="stat-mini-val" id="statTotal">—</div><div class="stat-mini-label">Total Tables</div></div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">✅</span>
+                <div><div class="stat-mini-val" id="statActive">—</div><div class="stat-mini-label">Active</div></div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">👥</span>
+                <div><div class="stat-mini-val" id="statCapacity">—</div><div class="stat-mini-label">Total Capacity</div></div>
+            </div>
+        </div>
+
+        <!-- Branch filter row -->
+        <div class="toolbar" id="filterRow">
+            <select class="filter-select" id="branchFilter" onchange="onBranchChange()">
+                <option value="">Loading branches…</option>
+            </select>
+        </div>
+
+        <!-- Tables grid -->
+        <div class="tables-grid" id="tablesGrid">
+            <div class="loading-tables">⏳ Loading tables…</div>
         </div>
     </div>
 </main>
+
+<!-- ═══════ ORDER FROM TABLE MODAL ═══════════════════════════════════════ -->
+<div class="modal-overlay" id="orderOverlay" onclick="closeIfOutside(event,'orderOverlay')">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>🧾 New Order</h3>
+            <button class="modal-close" onclick="closeModal('orderOverlay')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div id="orderError" class="modal-error" style="display:none"></div>
+            <div class="table-info-badge" id="orderTableInfo">—</div>
+            <div class="form-group" style="margin-top:16px">
+                <label>Notes (optional)</label>
+                <input type="text" id="orderNotes" placeholder="Special requests…" maxlength="300">
+            </div>
+            <input type="hidden" id="orderHiddenTable">
+            <input type="hidden" id="orderHiddenBranch">
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeModal('orderOverlay')">Cancel</button>
+            <button class="btn-primary" id="btnSubmitOrder" onclick="submitOrder()">Create Order</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════ CREATE TABLE MODAL (ADMIN) ══════════════════════════════════ -->
+<div class="modal-overlay" id="createOverlay" onclick="closeIfOutside(event,'createOverlay')">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>➕ New Table</h3>
+            <button class="modal-close" onclick="closeModal('createOverlay')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div id="createError" class="modal-error" style="display:none"></div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Table Number / ID <span class="required">*</span></label>
+                    <input type="text" id="createNumber" placeholder="e.g. 5 or BAR-2" maxlength="10">
+                </div>
+                <div class="form-group">
+                    <label>Capacity (seats)</label>
+                    <input type="number" id="createCapacity" min="1" max="30" value="4">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeModal('createOverlay')">Cancel</button>
+            <button class="btn-primary" id="btnCreate" onclick="submitCreate()">Create</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════ EDIT TABLE MODAL (ADMIN) ════════════════════════════════════ -->
+<div class="modal-overlay" id="editOverlay" onclick="closeIfOutside(event,'editOverlay')">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>✏️ Edit Table</h3>
+            <button class="modal-close" onclick="closeModal('editOverlay')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div id="editError" class="modal-error" style="display:none"></div>
+            <input type="hidden" id="editId">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Table Number <span class="required">*</span></label>
+                    <input type="text" id="editNumber" maxlength="10">
+                </div>
+                <div class="form-group">
+                    <label>Capacity (seats)</label>
+                    <input type="number" id="editCapacity" min="1" max="30">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="toggle-label">
+                    <input type="checkbox" id="editActive">
+                    <span>Active</span>
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeModal('editOverlay')">Cancel</button>
+            <button class="btn-primary" id="btnEdit" onclick="submitEdit()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════ DELETE CONFIRMATION MODAL ══════════════════════════════════ -->
+<div class="modal-overlay" id="deleteOverlay" onclick="closeIfOutside(event,'deleteOverlay')">
+    <div class="modal modal-sm">
+        <div class="modal-header">
+            <h3>🗑️ Deactivate Table</h3>
+            <button class="modal-close" onclick="closeModal('deleteOverlay')">✕</button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to deactivate <strong id="deleteTableName"></strong>?
+            It won't appear to staff but can be re-enabled later.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeModal('deleteOverlay')">Cancel</button>
+            <button class="btn-danger" id="btnConfirmDelete">Deactivate</button>
+        </div>
+    </div>
+</div>
+
 <script src="../../shared.js"></script>
 <script src="tables.js"></script>
+<script>
+    // Show admin-only elements after auth
+    if (getUser().role === 'ADMIN') {
+        document.getElementById('btnAddTable').style.display = 'inline-flex';
+    }
+</script>
 </body>
 </html>

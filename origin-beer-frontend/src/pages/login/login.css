@@ -66,7 +66,7 @@ body {
 }
 
 .logo { text-align: center; margin-bottom: 36px; }
-.logo-icon { font-size: 48px; display: block; margin-bottom: 12px; }
+.logo-icon { width: 100px; height: 100px; object-fit: contain; display: block; margin: 0 auto 12px; }
 .logo h1 { color: var(--orange); font-size: 26px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
 .logo p { color: var(--login-subtitle); font-size: 13px; margin-top: 4px; letter-spacing: 1px; }
 
