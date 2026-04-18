@@ -280,10 +280,13 @@ function closeAssignModal() {
 }
 
 
+// Pending payload while reassign confirmation is open
+let _pendingReassignIds = null;
+
 async function saveAssignments() {
     hideError('assignError');
 
-    const checkboxes = document.querySelectorAll('#userCheckList input[type=checkbox]');
+    const checkboxes  = document.querySelectorAll('#userCheckList input[type=checkbox]');
     const selectedIds = Array.from(checkboxes)
         .filter(cb => cb.checked)
         .map(cb => parseInt(cb.value));
@@ -291,7 +294,53 @@ async function saveAssignments() {
     const admin = getUser();
     if (!admin || !admin.idUser) { showError('assignError', 'Session error. Please log in again.'); return; }
 
-    const btn = document.getElementById('btnAssign');
+    // Detect which selected users are in another branch (need reassignment)
+    const ubMap = window._userBranchMap || {};
+    const toReassign = selectedIds
+        .filter(id => ubMap[id])
+        .map(id => ({ id, branchName: ubMap[id] }));
+
+    if (toReassign.length > 0) {
+        // Show confirmation modal before proceeding
+        _pendingReassignIds = selectedIds;
+        const targetName = document.getElementById('assignBranchName').textContent;
+        document.getElementById('reassignTargetBranch').textContent = targetName;
+        document.getElementById('reassignList').innerHTML = toReassign
+            .map(u => {
+                const checkboxLabel = document.querySelector(`#userCheckList input[value="${u.id}"]`)
+                    ?.closest('label')?.querySelector('.user-check-name')?.textContent || 'User #' + u.id;
+                return `<div class="reassign-item">👤 <strong>${checkboxLabel}</strong> — currently in <em>"${u.branchName}"</em></div>`;
+            }).join('');
+        document.getElementById('reassignOverlay').classList.add('active');
+        return;
+    }
+
+    // No conflicts — save directly
+    await doSaveAssignments(selectedIds);
+}
+
+function closeReassignModal() {
+    document.getElementById('reassignOverlay').classList.remove('active');
+    _pendingReassignIds = null;
+}
+
+async function confirmReassign() {
+    if (!_pendingReassignIds) return;
+    const btn = document.getElementById('btnConfirmReassign');
+    btn.disabled = true;
+    btn.textContent = 'Reassigning…';
+    try {
+        await doSaveAssignments(_pendingReassignIds);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '✅ Yes, Reassign';
+        closeReassignModal();
+    }
+}
+
+async function doSaveAssignments(selectedIds) {
+    const admin = getUser();
+    const btn   = document.getElementById('btnAssign');
     btn.disabled = true;
     btn.textContent = 'Saving…';
 
@@ -299,13 +348,14 @@ async function saveAssignments() {
         const res = await fetch(`${API}/api/branches/${assigningId}/users`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-            body: JSON.stringify({ userIds: selectedIds, assignedBy: admin.idUser })
+            body: JSON.stringify({ userIds: selectedIds, assignedBy: admin.idUser, force: true })
         });
 
         if (res.status === 401) { logout(); return; }
         if (!res.ok) { const msg = await res.text(); showError('assignError', msg || 'Error saving assignments.'); return; }
 
         closeAssignModal();
+        await loadBranches();
 
     } catch (e) {
         showError('assignError', 'Could not connect to the server.');

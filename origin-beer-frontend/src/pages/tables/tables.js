@@ -27,8 +27,17 @@ let   allTables   = [];
 let   myBranches  = [];   // branches this user can see
 let   activeBranch = null;
 
+// ── Open orders cache (to detect occupied tables) ──────────────────────────
+let openOrders = [];
+
+async function loadOpenOrders() {
+    const orders = await apiFetch('/api/orders') || [];
+    openOrders = orders.filter(o => o.status === 'OPEN');
+}
+
 // ── Boot ───────────────────────────────────────────────────────────────────
 async function boot() {
+    await loadOpenOrders();
     if (isAdmin) {
         // Admin: load all branches for the filter dropdown
         const branches = await apiFetch('/api/branches') || [];
@@ -76,7 +85,16 @@ async function loadTables(idBranch) {
     document.getElementById('tablesGrid').innerHTML = `
         <div class="loading-tables">⏳ Loading tables…</div>`;
 
-    const tables = await apiFetch(`/api/tables?idBranch=${idBranch}`) || [];
+    // Admin: fetch all tables (active + inactive) via /api/tables/all, then filter by branch.
+    // This keeps inactive tables visible with their inactive styling — matching Cashier behavior.
+    // Staff roles keep using the active-only scoped endpoint (unchanged).
+    let tables;
+    if (isAdmin) {
+        const all = await apiFetch('/api/tables/all') || [];
+        tables = all.filter(t => t.branch?.idBranch == idBranch);
+    } else {
+        tables = await apiFetch(`/api/tables?idBranch=${idBranch}`) || [];
+    }
     allTables = tables;
 
     const branchName = (myBranches.find(b => b.idBranch == idBranch) || {}).name || '';
@@ -92,26 +110,50 @@ function renderGrid(tables) {
     if (tables.length === 0) {
         grid.innerHTML = `<div class="empty-tables">
             <span style="font-size:48px">🪑</span>
-            <p>No active tables for this branch.</p>
+            <p>No tables for this branch.</p>
             ${isAdmin ? '<button class="btn-primary" onclick="openCreateModal()">+ Add First Table</button>' : ''}
         </div>`;
         return;
     }
 
-    grid.innerHTML = tables.map(t => `
-        <div class="table-card" onclick="handleTableClick(${t.idTable})" data-id="${t.idTable}">
-            <div class="table-number">${t.tableNumber}</div>
-            <div class="table-capacity">👥 ${t.capacity} seats</div>
-            <div class="table-status ${t.active ? 'status-active' : 'status-inactive'}">
-                ${t.active ? 'Available' : 'Inactive'}
-            </div>
-            ${isAdmin ? `
+    grid.innerHTML = tables.map(t => {
+        // Check if this table has an open order
+        const openOrder  = openOrders.find(o => o.table?.idTable === t.idTable);
+        const isOccupied = !!openOrder;
+
+        // Status styling — mirrors Cashier module exactly
+        const statusClass = !t.active  ? 'status-inactive'
+                          : isOccupied ? 'status-occupied'
+                          : 'status-active';
+        const statusLabel = !t.active  ? 'Inactive'
+                          : isOccupied ? `🔴 Occupied — Order #${openOrder.idOrder}`
+                          : '🟢 Available';
+
+        // Inactive tables: keep card in grid with muted styling, no click action
+        const cardClass  = !t.active   ? 'table-card inactive-card'
+                         : isOccupied  ? 'table-card table-occupied'
+                         : 'table-card';
+        const clickAttr  = t.active    ? `onclick="handleTableClick(${t.idTable})"` : '';
+
+        // Admin action buttons: toggle label based on current state
+        const adminActions = isAdmin ? `
             <div class="table-actions" onclick="event.stopPropagation()">
                 <button class="btn-icon" title="Edit" onclick="openEditModal(${t.idTable})">✏️</button>
-                <button class="btn-icon btn-danger" title="Deactivate" onclick="confirmDelete(${t.idTable}, '${t.tableNumber}')">🗑️</button>
-            </div>` : ''}
-        </div>
-    `).join('');
+                <button class="btn-icon ${t.active ? 'btn-danger' : 'btn-activate'}"
+                        title="${t.active ? 'Deactivate' : 'Activate'}"
+                        onclick="confirmDelete(${t.idTable}, '${t.tableNumber}', ${t.active})">
+                    ${t.active ? '🗑️' : '✅'}
+                </button>
+            </div>` : '';
+
+        return `
+        <div class="${cardClass}" ${clickAttr} data-id="${t.idTable}">
+            <div class="table-number">${t.tableNumber}</div>
+            <div class="table-capacity">👥 ${t.capacity} seats</div>
+            <div class="table-status ${statusClass}">${statusLabel}</div>
+            ${adminActions}
+        </div>`;
+    }).join('');
 }
 
 function updateStats(tables) {
@@ -136,6 +178,14 @@ async function onBranchChange() {
 function handleTableClick(idTable) {
     const table = allTables.find(t => t.idTable === idTable);
     if (!table) return;
+
+    // FIX #2: block if table already has an open order
+    const openOrder = openOrders.find(o => o.table?.idTable === idTable);
+    if (openOrder) {
+        alert(`⚠️ Table ${table.tableNumber} already has open Order #${openOrder.idOrder}.\nClose it before opening a new one.`);
+        return;
+    }
+
     openOrderFromTable(table);
 }
 
@@ -270,21 +320,48 @@ async function submitEdit() {
     }
 }
 
-// ── Delete confirmation ────────────────────────────────────────────────────
-function confirmDelete(idTable, tableNumber) {
-    document.getElementById('deleteTableName').textContent = `Table ${tableNumber}`;
-    document.getElementById('btnConfirmDelete').onclick = () => doDelete(idTable);
+// ── Toggle active / inactive — mirrors Cashier behavior exactly ───────────
+// Mesa desactivada permanece visible en el grid con clase inactive-card.
+// Si la mesa ya está inactiva, el botón permite re-activarla.
+function confirmDelete(idTable, tableNumber, currentlyActive) {
+    const action = currentlyActive ? 'Deactivate' : 'Activate';
+    const nameEl = document.getElementById('deleteTableName');
+    if (nameEl) nameEl.textContent = `Table ${tableNumber}`;
+
+    // Update confirmation modal text if element exists
+    const msgEl = document.getElementById('deleteMessage');
+    if (msgEl) {
+        msgEl.textContent = currentlyActive
+            ? 'The table will remain visible but marked as Inactive.'
+            : 'The table will be marked as Active and available again.';
+    }
+
+    document.getElementById('btnConfirmDelete').onclick = () => doDelete(idTable, currentlyActive);
     openModal('deleteOverlay');
 }
 
-async function doDelete(idTable) {
+async function doDelete(idTable, currentlyActive) {
     try {
+        // Use PUT to set active flag explicitly — matches the backend PUT /api/tables/{id}
+        // which accepts { active: bool } without requiring tableNumber/capacity changes.
+        // The backend DELETE endpoint is a soft-delete (sets active=false) — we use PUT
+        // here so we can also re-activate, and the card stays in the grid either way.
+        const table  = allTables.find(t => t.idTable === idTable);
+        if (!table) { closeModal('deleteOverlay'); return; }
+
         const res = await fetch(`${API}/api/tables/${idTable}`, {
-            method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${getToken()}` }
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+            body: JSON.stringify({
+                tableNumber : table.tableNumber,
+                capacity    : table.capacity,
+                active      : !currentlyActive      // toggle
+            })
         });
-        if (!res.ok) { alert('Could not deactivate table'); return; }
+        if (!res.ok) { alert('Could not update table status'); return; }
+
         closeModal('deleteOverlay');
+        // Reload keeping inactive tables visible (Admin-scoped fetch via /api/tables/all)
         await loadTables(activeBranch);
     } catch (e) {
         alert('Connection error');

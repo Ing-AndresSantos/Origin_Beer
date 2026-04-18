@@ -80,15 +80,12 @@ function updateStats() {
 
     // ---- Estamos usando este Algoritmo: ALGORITMO ITERATIVO ----
     // Descripción: Cálculo del revenue diario iterando sobre los
-    // pedidos pagados de hoy. Se suman los subtotales de cada línea
-    // de detalle de forma iterativa. En el front se muestra el
-    // total del día en la tarjeta de estadísticas superior.
+    // pedidos pagados de hoy. Se usa el campo `total` que el backend
+    // retorna directamente en cada orden (computado desde order_detail).
     // -----------------------------------------------------------
     let revenue = 0;
     todayPd.forEach(o => {
-        if (o.details) {
-            o.details.forEach(d => { revenue += Number(d.subtotal || 0); });
-        }
+        revenue += Number(o.total ?? 0);
     });
 
     document.getElementById('statTotal').textContent   = allOrders.length;
@@ -128,7 +125,8 @@ function renderOrders(orders) {
     tbody.innerHTML = orders.map(o => {
         const isOpen = o.status === 'OPEN';
         const opened = o.openedAt ? new Date(o.openedAt).toLocaleString('es-CO') : '—';
-        const total  = computeTotal(o.details || []);
+        // FIX #1: backend returns `total` directly; usar ?? para evitar falsy en 0
+        const total  = Number(o.total ?? 0);
         return `
         <tr class="${isOpen ? 'row-open' : 'row-paid'}">
             <td><strong>#${o.idOrder}</strong></td>
@@ -193,6 +191,18 @@ async function createOrder() {
     if (!idBranch) { showErr('newOrderError', 'Select a branch.'); return; }
     if (!idTable)  { showErr('newOrderError', 'Select a table.'); return; }
 
+    // FIX #2: check locally if this table already has an OPEN order
+    const tableNum = document.getElementById('foTable').selectedOptions[0]?.text || '';
+    const conflict = allOrders.find(o =>
+        o.status === 'OPEN' &&
+        String(o.table?.idTable) === String(idTable)
+    );
+    if (conflict) {
+        showErr('newOrderError',
+            `⚠️ Table ${tableNum} already has open order #${conflict.idOrder}. Close it before creating a new one.`);
+        return;
+    }
+
     const btn = document.getElementById('btnCreateOrder');
     btn.disabled = true; btn.textContent = 'Creating…';
 
@@ -203,6 +213,7 @@ async function createOrder() {
             body: JSON.stringify({ idBranch: +idBranch, idTable: +idTable, idWaiter: user.idUser, notes })
         });
         if (res.status === 401) { logout(); return; }
+        if (res.status === 409) { showErr('newOrderError', '⚠️ ' + await res.text()); return; }
         if (!res.ok) { showErr('newOrderError', await res.text()); return; }
 
         const order = await res.json();
@@ -281,11 +292,18 @@ async function addProduct(idProduct) {
     if (res.status === 401) { logout(); return; }
     if (!res.ok) { alert(await res.text()); return; }
 
-    const details = await apiFetch(`/api/orders/${currentOrderId}/details`);
-    const order   = await apiFetch(`/api/orders/${currentOrderId}`);
-    const isPaid  = order?.status === 'PAID';
+    const [details, order] = await Promise.all([
+        apiFetch(`/api/orders/${currentOrderId}/details`),
+        apiFetch(`/api/orders/${currentOrderId}`)
+    ]);
+    const isPaid = order?.status === 'PAID';
     renderLines(details || [], isPaid);
-    await load();
+
+    // Actualizar orden en estado local y re-renderizar tabla
+    const idx = allOrders.findIndex(o => o.idOrder === currentOrderId);
+    if (idx !== -1 && order) allOrders[idx] = order;
+    updateStats();
+    renderOrders(sortOrdersByDate(allOrders));
 }
 
 async function removeDetail(idDetail) {
@@ -296,10 +314,17 @@ async function removeDetail(idDetail) {
     if (res.status === 401) { logout(); return; }
     if (!res.ok) { alert(await res.text()); return; }
 
-    const details = await apiFetch(`/api/orders/${currentOrderId}/details`);
-    const order   = await apiFetch(`/api/orders/${currentOrderId}`);
+    const [details, order] = await Promise.all([
+        apiFetch(`/api/orders/${currentOrderId}/details`),
+        apiFetch(`/api/orders/${currentOrderId}`)
+    ]);
     renderLines(details || [], order?.status === 'PAID');
-    await load();
+
+    // Actualizar orden en estado local y re-renderizar tabla
+    const idx = allOrders.findIndex(o => o.idOrder === currentOrderId);
+    if (idx !== -1 && order) allOrders[idx] = order;
+    updateStats();
+    renderOrders(sortOrdersByDate(allOrders));
 }
 
 // ══════════════════════════════════════════════════════════════

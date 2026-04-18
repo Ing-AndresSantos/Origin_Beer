@@ -13,7 +13,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/branches")
@@ -31,13 +32,13 @@ public class BranchController {
         this.userBranchRepository = userBranchRepository;
     }
 
-    // ── GET /api/sedes ───────────────────────────────────────
+    // ── GET /api/branches ────────────────────────────────────
     @GetMapping
     public List<Branch> listBranches() {
         return branchRepository.findAll();
     }
 
-    // ── GET /api/sedes/{id} ──────────────────────────────────
+    // ── GET /api/branches/{id} ───────────────────────────────
     @GetMapping("/{id}")
     public ResponseEntity<?> getBranch(@PathVariable Integer id) {
         return branchRepository.findById(id)
@@ -45,10 +46,9 @@ public class BranchController {
                 .orElse(ResponseEntity.status(404).body("Branch not found"));
     }
 
-    // ── POST /api/sedes ──────────────────────────────────────
+    // ── POST /api/branches ───────────────────────────────────
     @PostMapping
     public ResponseEntity<?> createBranch(@RequestBody CreateBranchRequest request) {
-
         if (request.getCode() == null || request.getCode().isBlank())
             return ResponseEntity.status(400).body("Branch code is required");
         if (request.getName() == null || request.getName().isBlank())
@@ -75,7 +75,7 @@ public class BranchController {
         return ResponseEntity.status(201).body(branchRepository.save(branch));
     }
 
-    // ── PUT /api/sedes/{id} ──────────────────────────────────
+    // ── PUT /api/branches/{id} ───────────────────────────────
     @PutMapping("/{id}")
     public ResponseEntity<?> updateBranch(@PathVariable Integer id,
                                           @RequestBody UpdateBranchRequest request) {
@@ -94,19 +94,17 @@ public class BranchController {
         return ResponseEntity.ok(branchRepository.save(branch));
     }
 
-    // ── PATCH /api/sedes/{id}/status ─────────────────────────
+    // ── PATCH /api/branches/{id}/status ──────────────────────
     @PatchMapping("/{id}/status")
     public ResponseEntity<?> toggleStatus(@PathVariable Integer id) {
         Branch branch = branchRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Branch not found"));
-
         branch.setActive(!branch.getActive());
         branchRepository.save(branch);
-
         return ResponseEntity.ok(branch.getActive() ? "activated" : "deactivated");
     }
 
-    // ── GET /api/sedes/{id}/users ────────────────────────────
+    // ── GET /api/branches/{id}/users ─────────────────────────
     @GetMapping("/{id}/users")
     public ResponseEntity<?> getAssignedUsers(@PathVariable Integer id) {
         if (!branchRepository.existsById(id))
@@ -116,13 +114,14 @@ public class BranchController {
                 .findByBranch_IdBranch(id)
                 .stream()
                 .map(UserBranch::getUser)
-                .toList();
+                .collect(Collectors.toList());
 
         return ResponseEntity.ok(users);
     }
 
-    // ── PUT /api/sedes/{id}/users ────────────────────────────
-    // Replaces all current assignments for the branch with the new list.
+    // ── PUT /api/branches/{id}/users ─────────────────────────
+    // force=false → rejects if any user is in another branch (409)
+    // force=true  → reassigns users (removes from old branch first)
     @Transactional
     @PutMapping("/{id}/users")
     public ResponseEntity<?> assignUsers(@PathVariable Integer id,
@@ -136,15 +135,59 @@ public class BranchController {
         User admin = userRepository.findById(request.getAssignedBy())
                 .orElseThrow(() -> new RuntimeException("Admin user not found"));
 
-        // Remove all existing assignments for this branch
-        userBranchRepository.deleteByBranch_IdBranch(id);
+        List<Integer> incomingIds = request.getUserIds() != null
+                ? request.getUserIds()
+                : Collections.emptyList();
 
-        // Create new assignments
-        if (request.getUserIds() != null) {
-            for (Integer userId : request.getUserIds()) {
+        boolean force = Boolean.TRUE.equals(request.getForce());
+
+        if (!force) {
+            // Validate: no user can be in another branch
+            List<String> conflicts = new ArrayList<>();
+            for (Integer userId : incomingIds) {
+                boolean inOther = userBranchRepository.findAll().stream()
+                        .anyMatch(ub -> ub.getUser().getIdUser().equals(userId)
+                                && !ub.getBranch().getIdBranch().equals(id));
+                if (inOther) {
+                    User u = userRepository.findById(userId).orElse(null);
+                    String name = u != null ? u.getFirstName() + " " + u.getLastName() : "User #" + userId;
+                    conflicts.add(name);
+                }
+            }
+            if (!conflicts.isEmpty())
+                return ResponseEntity.status(409)
+                        .body("These users are already in another branch: "
+                                + String.join(", ", conflicts)
+                                + ". Check them and confirm reassignment.");
+        } else {
+            // Force mode: remove users from any other branch before assigning here
+            for (Integer userId : incomingIds) {
+                userBranchRepository.findAll().stream()
+                        .filter(ub -> ub.getUser().getIdUser().equals(userId)
+                                && !ub.getBranch().getIdBranch().equals(id))
+                        .forEach(userBranchRepository::delete);
+            }
+        }
+
+        // Additive update for this branch
+        Set<Integer> currentIds = userBranchRepository.findByBranch_IdBranch(id)
+                .stream()
+                .map(ub -> ub.getUser().getIdUser())
+                .collect(Collectors.toSet());
+
+        Set<Integer> incomingSet = new HashSet<>(incomingIds);
+
+        // Remove unchecked users
+        userBranchRepository.findByBranch_IdBranch(id).forEach(ub -> {
+            if (!incomingSet.contains(ub.getUser().getIdUser()))
+                userBranchRepository.delete(ub);
+        });
+
+        // Add new users
+        for (Integer userId : incomingIds) {
+            if (!currentIds.contains(userId)) {
                 User user = userRepository.findById(userId).orElse(null);
                 if (user == null || !user.getActive()) continue;
-
                 UserBranch ub = new UserBranch();
                 ub.setUser(user);
                 ub.setBranch(branch);

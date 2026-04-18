@@ -32,17 +32,43 @@ public class OrderController {
                            UserRepository userRepo,
                            ProductRepository productRepo,
                            ProductBranchRepository pbRepo) {
-        this.orderRepo  = orderRepo;
-        this.detailRepo = detailRepo;
-        this.tableRepo  = tableRepo;
-        this.branchRepo = branchRepo;
-        this.userRepo   = userRepo;
+        this.orderRepo   = orderRepo;
+        this.detailRepo  = detailRepo;
+        this.tableRepo   = tableRepo;
+        this.branchRepo  = branchRepo;
+        this.userRepo    = userRepo;
         this.productRepo = productRepo;
         this.pbRepo      = pbRepo;
     }
 
+    // ── Helper: compute total for an order ───────────────────
+    private BigDecimal computeOrderTotal(Long idOrder) {
+        return detailRepo.findByOrder_IdOrder(idOrder)
+                .stream()
+                .map(d -> d.getSalePrice().multiply(BigDecimal.valueOf(d.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    // ── Helper: build enriched response with total ───────────
+    private Map<String, Object> enrichOrder(OrderTicket o) {
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("idOrder",   o.getIdOrder());
+        map.put("branch",    o.getBranch());
+        map.put("table",     o.getTable());
+        map.put("waiter",    o.getWaiter());
+        map.put("status",    o.getStatus());
+        map.put("notes",     o.getNotes());
+        map.put("openedAt",  o.getOpenedAt());
+        map.put("closedAt",  o.getClosedAt());
+        map.put("createdAt", o.getCreatedAt());
+        map.put("updatedAt", o.getUpdatedAt());
+        map.put("total",     computeOrderTotal(o.getIdOrder()));
+        return map;
+    }
+
     // ═══════════════════════════════════════════════════════════
     // US-18 — CREATE ORDER BY TABLE
+    // FIX #2: Validate that the table has no OPEN order already
     // ═══════════════════════════════════════════════════════════
     @PostMapping
     public ResponseEntity<?> createOrder(@RequestBody CreateOrderRequest req) {
@@ -56,6 +82,17 @@ public class OrderController {
         User      waiter = userRepo.findById(req.getIdWaiter())
                 .orElseThrow(() -> new RuntimeException("Waiter not found"));
 
+        // ── FIX #2: block if the table already has an OPEN order ──
+        boolean tableOccupied = orderRepo
+                .findByBranch_IdBranchAndStatus(req.getIdBranch(), OrderTicket.OrderStatus.OPEN)
+                .stream()
+                .anyMatch(o -> o.getTable().getIdTable().equals(req.getIdTable()));
+
+        if (tableOccupied)
+            return ResponseEntity.status(409)
+                    .body("Table " + table.getTableNumber()
+                            + " already has an open order. Close it before creating a new one.");
+
         OrderTicket order = new OrderTicket();
         order.setBranch(branch);
         order.setTable(table);
@@ -63,20 +100,13 @@ public class OrderController {
         order.setNotes(req.getNotes());
         order.setStatus(OrderTicket.OrderStatus.OPEN);
 
-        return ResponseEntity.status(201).body(orderRepo.save(order));
+        OrderTicket saved = orderRepo.save(order);
+        return ResponseEntity.status(201).body(enrichOrder(saved));
     }
 
     // ═══════════════════════════════════════════════════════════
-    // US-19 — ADD PRODUCTS TO AN ORDER
-    //
-    // ---- Estamos usando este Algoritmo: ALGORITMO ITERATIVO ----
-    // Descripción: Al agregar múltiples productos a un pedido, el
-    // backend recorre iterativamente la lista de detalles y calcula
-    // el subtotal acumulado (running total) línea por línea.
-    // En el front, la tabla de productos se construye con un bucle
-    // que suma subtotales en tiempo real con cada cambio de cantidad,
-    // visible en el panel derecho del modal de pedido.
-    // -----------------------------------------------------------
+    // US-19 — ADD PRODUCTS TO AN ORDER  (Iterativo)
+    // ═══════════════════════════════════════════════════════════
     @PostMapping("/{id}/details")
     public ResponseEntity<?> addDetail(@PathVariable Long id,
                                        @RequestBody AddDetailRequest req) {
@@ -91,7 +121,6 @@ public class OrderController {
         Product product = productRepo.findById(req.getIdProduct())
                 .orElseThrow(() -> new RuntimeException("Product not found"));
 
-        // Check stock at the branch
         ProductBranch pb = pbRepo
                 .findByProduct_IdProductAndBranch_IdBranch(req.getIdProduct(), order.getBranch().getIdBranch())
                 .orElse(null);
@@ -99,7 +128,6 @@ public class OrderController {
             return ResponseEntity.status(409)
                     .body("Insufficient stock. Available: " + (pb == null ? 0 : pb.getQuantity()));
 
-        // Check if product already exists in order — increase qty instead of duplicate
         List<OrderDetail> existing = detailRepo.findByOrder_IdOrder(id);
         Optional<OrderDetail> same = existing.stream()
                 .filter(d -> d.getProduct().getIdProduct().equals(req.getIdProduct()))
@@ -144,18 +172,8 @@ public class OrderController {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // US-20 — ORDER STATUS CONTROL (OPEN → PAID)
-    // US-21 — AUTOMATIC INVENTORY DEDUCTION ON CLOSE
-    //
-    // ---- Estamos usando este Algoritmo: DIVIDE Y VENCERÁS -----
-    // Descripción: Al cerrar un pedido, el problema se divide en
-    // subproblemas independientes: (1) validar stock suficiente
-    // para CADA línea, (2) descontar inventario línea a línea,
-    // (3) marcar el pedido como PAID. Si cualquier subproblema falla
-    // (stock insuficiente), se hace rollback de toda la transacción.
-    // En el front se muestra el resultado final consolidado en el
-    // panel de estado del pedido, con los ítems descontados visibles.
-    // -----------------------------------------------------------
+    // US-20/21 — CLOSE ORDER  (Divide y Vencerás)
+    // ═══════════════════════════════════════════════════════════
     @Transactional
     @PatchMapping("/{id}/close")
     public ResponseEntity<?> closeOrder(@PathVariable Long id) {
@@ -169,7 +187,7 @@ public class OrderController {
         if (details.isEmpty())
             return ResponseEntity.status(400).body("Cannot close an empty order");
 
-        // ── Divide y Vencerás: phase 1 — validate all stock ──
+        // Phase 1 — validate stock
         List<String> stockErrors = new ArrayList<>();
         for (OrderDetail line : details) {
             ProductBranch pb = pbRepo
@@ -178,16 +196,15 @@ public class OrderController {
                             order.getBranch().getIdBranch())
                     .orElse(null);
             int available = (pb == null) ? 0 : pb.getQuantity();
-            if (available < line.getQuantity()) {
+            if (available < line.getQuantity())
                 stockErrors.add(line.getProduct().getName()
                         + ": need " + line.getQuantity() + ", have " + available);
-            }
         }
         if (!stockErrors.isEmpty())
             return ResponseEntity.status(409)
                     .body("Insufficient stock:\n" + String.join("\n", stockErrors));
 
-        // ── Divide y Vencerás: phase 2 — deduct inventory ────
+        // Phase 2 — deduct inventory
         for (OrderDetail line : details) {
             ProductBranch pb = pbRepo
                     .findByProduct_IdProductAndBranch_IdBranch(
@@ -198,7 +215,7 @@ public class OrderController {
             pbRepo.save(pb);
         }
 
-        // ── Divide y Vencerás: phase 3 — mark as PAID ────────
+        // Phase 3 — mark as PAID
         order.setStatus(OrderTicket.OrderStatus.PAID);
         order.setClosedAt(LocalDateTime.now());
         orderRepo.save(order);
@@ -207,21 +224,15 @@ public class OrderController {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // US-22 — LIST ORDERS BY BRANCH
-    //
-    // ---- Estamos usando este Algoritmo: ORDENAMIENTO (Merge Sort) -
-    // Descripción: Los pedidos se retornan ordenados por fecha de
-    // apertura descendente usando Comparator.comparing con reversed(),
-    // que internamente aplica un algoritmo de ordenamiento estable
-    // (TimSort en Java). En el front, el filtro de estado + búsqueda
-    // aplica un segundo ordenamiento visual en el cliente, permitiendo
-    // ver los pedidos más recientes primero y comparar tiempos.
-    // -----------------------------------------------------------
+    // US-22 — LIST ORDERS  (FIX #1: includes total per order)
+    // Ordenamiento: TimSort descendente por fecha
+    // ═══════════════════════════════════════════════════════════
     @GetMapping
-    public List<OrderTicket> listAll() {
+    public List<Map<String, Object>> listAll() {
         return orderRepo.findAll()
                 .stream()
                 .sorted(Comparator.comparing(OrderTicket::getOpenedAt).reversed())
+                .map(this::enrichOrder)
                 .collect(Collectors.toList());
     }
 
@@ -243,28 +254,26 @@ public class OrderController {
             orders = orderRepo.findByBranch_IdBranch(idBranch);
         }
 
-        // Sort by openedAt desc — Merge Sort (TimSort)
         orders.sort(Comparator.comparing(OrderTicket::getOpenedAt).reversed());
-        return ResponseEntity.ok(orders);
+
+        List<Map<String, Object>> result = orders.stream()
+                .map(this::enrichOrder)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(result);
     }
 
+    // ── GET single order (also enriched with total) ───────────
     @GetMapping("/{id}")
     public ResponseEntity<?> getOrder(@PathVariable Long id) {
         return orderRepo.findById(id)
-                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .<ResponseEntity<?>>map(o -> ResponseEntity.ok(enrichOrder(o)))
                 .orElse(ResponseEntity.status(404).body("Order not found"));
     }
 
     // ═══════════════════════════════════════════════════════════
-    // ---- Estamos usando este Algoritmo: PROBLEMA DE LA MOCHILA -
-    // Descripción: GET /api/orders/suggest-combo — dado un
-    // presupuesto (budget) del cliente y los productos disponibles
-    // en la sede, sugiere la combinación de productos que MAXIMIZA
-    // el subtotal sin exceder el presupuesto (Knapsack 0/1 con DP).
-    // En el front aparece como "Suggest combo" en el modal de pedido,
-    // mostrando qué productos agregar para aprovechar al máximo el
-    // presupuesto ingresado por el mesero.
-    // -----------------------------------------------------------
+    // Problema de la Mochila — Knapsack suggest combo
+    // ═══════════════════════════════════════════════════════════
     @GetMapping("/suggest-combo")
     public ResponseEntity<?> suggestCombo(
             @RequestParam Integer idBranch,
@@ -273,7 +282,6 @@ public class OrderController {
         if (budget == null || budget <= 0)
             return ResponseEntity.status(400).body("budget must be > 0");
 
-        // Only in-stock products at branch
         List<ProductBranch> stock = pbRepo.findByBranch_IdBranch(idBranch)
                 .stream()
                 .filter(pb -> pb.getQuantity() > 0 && pb.getProduct().getActive())
@@ -281,31 +289,27 @@ public class OrderController {
 
         int n = stock.size();
         int W = budget;
-
-        // DP table: dp[i][w] = max revenue using first i items with capacity w
         int[][] dp = new int[n + 1][W + 1];
 
         for (int i = 1; i <= n; i++) {
             int price = stock.get(i - 1).getProduct().getSalePrice().intValue();
             for (int w = 0; w <= W; w++) {
                 dp[i][w] = dp[i - 1][w];
-                if (price <= w) {
+                if (price <= w)
                     dp[i][w] = Math.max(dp[i][w], dp[i - 1][w - price] + price);
-                }
             }
         }
 
-        // Backtrack to find selected items
         List<Map<String, Object>> selected = new ArrayList<>();
         int w = W;
         for (int i = n; i >= 1; i--) {
             if (dp[i][w] != dp[i - 1][w]) {
                 ProductBranch pb = stock.get(i - 1);
                 Map<String, Object> item = new LinkedHashMap<>();
-                item.put("idProduct",  pb.getProduct().getIdProduct());
-                item.put("name",       pb.getProduct().getName());
-                item.put("salePrice",  pb.getProduct().getSalePrice());
-                item.put("stock",      pb.getQuantity());
+                item.put("idProduct", pb.getProduct().getIdProduct());
+                item.put("name",      pb.getProduct().getName());
+                item.put("salePrice", pb.getProduct().getSalePrice());
+                item.put("stock",     pb.getQuantity());
                 selected.add(item);
                 w -= pb.getProduct().getSalePrice().intValue();
             }

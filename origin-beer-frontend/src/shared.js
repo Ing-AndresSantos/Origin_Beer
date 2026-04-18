@@ -13,30 +13,61 @@ function getUser() {
     return JSON.parse(localStorage.getItem('user') || '{}');
 }
 
-function requireAuth() {
-    if (!getToken()) window.location.href = '../login/login.html';
+/**
+ * Builds the absolute path to the login page regardless of how deep
+ * the current page is nested inside /pages/.
+ */
+function _loginPath() {
+    const pathname  = window.location.pathname;
+    const pagesIdx  = pathname.indexOf('/pages/');
+    if (pagesIdx !== -1) {
+        const base = pathname.substring(0, pagesIdx + '/pages/'.length);
+        return window.location.origin + base + 'login/login.html';
+    }
+    return '/origin-beer-frontend/src/pages/login/login.html';
 }
 
+function requireAuth() {
+    if (!getToken()) {
+        window.location.href = _loginPath();
+    }
+}
+
+/**
+ * requireRole(role)
+ * Verifies that the authenticated user actually has the expected role.
+ * If not authenticated → redirect to login.
+ * If wrong role → redirect to the correct dashboard for their actual role.
+ *
+ * @param {string} role  Expected role: 'ADMIN' | 'CASHIER' | 'WAITER'
+ */
 function requireRole(role) {
     requireAuth();
-    // Validación de rol - puede ajustarse según la estructura de datos del usuario
-    // Por ahora se enfoca en verificar autenticación
+    const user       = getUser();
+    const actualRole = (user.role || '').toUpperCase();
+    const expected   = (role || '').toUpperCase();
+
+    if (actualRole === expected) return; // ✅ correct role, nothing to do
+
+    // Wrong role: redirect to the correct dashboard
+    const pathname  = window.location.pathname;
+    const pagesIdx  = pathname.indexOf('/pages/');
+    const pagesBase = pagesIdx !== -1
+        ? window.location.origin + pathname.substring(0, pagesIdx + '/pages/'.length)
+        : window.location.origin + '/origin-beer-frontend/src/pages/';
+
+    if (actualRole === 'WAITER')  { window.location.href = pagesBase + 'waiter/dashboard/dashboard.html';  return; }
+    if (actualRole === 'CASHIER') { window.location.href = pagesBase + 'cashier/dashboard/dashboard.html'; return; }
+    if (actualRole === 'ADMIN')   { window.location.href = pagesBase + 'dashboard/dashboard.html';         return; }
+
+    // Unknown role — force logout
+    logout();
 }
 
 function logout() {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    // Construir ruta limpia: reemplazar todo después de "/pages/" con "login/login.html"
-    const pathname = window.location.pathname;
-    const pagesIndex = pathname.indexOf('/pages/');
-    
-    if (pagesIndex !== -1) {
-        // Extraer desde el inicio hasta "/pages/" incluido
-        const baseToPages = pathname.substring(0, pagesIndex + '/pages/'.length);
-        window.location.href = window.location.origin + baseToPages + 'login/login.html';
-    } else {
-        window.location.href = '/origin-beer-frontend/src/pages/login/login.html';
-    }
+    window.location.href = _loginPath();
 }
 
 
@@ -143,11 +174,11 @@ function initDate() {
     }
 }
 
-// ── SIDEBAR HTML (shared nav) ─────────────────────────────────
+// ── SIDEBAR HTML (admin nav) ──────────────────────────────────
 function getSidebarNav(base = '../') {
     return `
     <div class="sidebar-logo">
-        <img src="../Logo/logo origeen beer.png" alt="Origin Beer" class="logo-icon">
+        <img src="${base}../logo/logo origeen beer.png" alt="Origin Beer" class="logo-icon">
         <div><h2>Origin Beer</h2><p>Management System</p></div>
     </div>
     <div class="sidebar-user">
@@ -210,11 +241,14 @@ function getCashierSidebar(base = '../') {
     `;
 }
 
-// ── SIDEBAR HTML (waiter nav) ────────────────────────────────
+// ── SIDEBAR HTML (waiter nav) ─────────────────────────────────
+// IMPORTANT: All waiter pages live at pages/waiter/<section>/<file>.html
+// so the correct base from any waiter page is always '../' (one level up
+// to /waiter/, then the section subfolder). Do NOT pass '../../' here.
 function getWaiterSidebar(base = '../') {
     return `
     <div class="sidebar-logo">
-        <span>🍺</span>
+        <img src="../Logo/logo origeen beer.png" alt="Origin Beer" class="logo-icon">
         <div><h2>Origin Beer</h2><p>Waiter Station</p></div>
     </div>
     <div class="sidebar-user">
@@ -228,7 +262,6 @@ function getWaiterSidebar(base = '../') {
         <div class="nav-section">Operations</div>
         <a class="nav-item" href="${base}tables/tables.html"><span class="nav-icon">🪑</span> Tables</a>
         <a class="nav-item" href="${base}orders/orders.html"><span class="nav-icon">🧾</span> Orders</a>
-        <a class="nav-item" href="${base}products/products.html"><span class="nav-icon">🛒</span> Menu</a>
     </nav>
     <div class="sidebar-footer">
         <button class="btn-theme-toggle" onclick="toggleTheme()">🌙 Toggle Theme</button>

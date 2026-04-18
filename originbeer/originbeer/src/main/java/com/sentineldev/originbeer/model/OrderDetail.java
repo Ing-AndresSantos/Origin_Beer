@@ -35,7 +35,8 @@ public class OrderDetail {
     @Column(name = "purchase_cost", nullable = false, precision = 12, scale = 2)
     private BigDecimal purchaseCost;
 
-    // subtotal is a generated column in DB — mark as insertable=false, updatable=false
+    // subtotal es columna generada en BD — no insertable/updatable
+    // Se calcula en Java para garantizar que siempre tenga valor en la respuesta JSON
     @Column(name = "subtotal", insertable = false, updatable = false, precision = 14, scale = 2)
     private BigDecimal subtotal;
 
@@ -48,5 +49,13 @@ public class OrderDetail {
     @PrePersist
     protected void onCreate() {
         if (this.addedAt == null) this.addedAt = LocalDateTime.now();
+    }
+
+    // Retorna subtotal calculado en Java si la BD no lo pobló
+    public BigDecimal getSubtotal() {
+        if (this.subtotal != null) return this.subtotal;
+        if (this.quantity != null && this.salePrice != null)
+            return this.salePrice.multiply(BigDecimal.valueOf(this.quantity));
+        return BigDecimal.ZERO;
     }
 }

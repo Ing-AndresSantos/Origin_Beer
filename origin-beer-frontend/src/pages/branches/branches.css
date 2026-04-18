@@ -366,3 +366,88 @@
 .user-check-info  { display: flex; flex-direction: column; gap: 2px; }
 .user-check-name  { font-size: 13px; color: #e8e8e8; font-weight: 500; }
 .user-check-meta  { font-size: 11px; color: #666; }
+
+/* ── FIX #3: Conflict badge in assign modal ─────────────────── */
+.user-check-conflict {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+.user-check-conflict input[type=checkbox] {
+    cursor: not-allowed;
+}
+.user-conflict-badge {
+    font-size: 10px;
+    color: #f87171;
+    background: #1f0808;
+    border: 1px solid #5a1a1a;
+    border-radius: 4px;
+    padding: 2px 6px;
+    margin-top: 3px;
+    display: inline-block;
+}
+
+/* ── REASSIGN CONFIRMATION MODAL ────────────────────────────── */
+.reassign-warning {
+    background: #1c1200;
+    border: 1px solid #4a3000;
+    color: #f5a623;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 12px;
+}
+
+.reassign-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+
+.reassign-item {
+    background: #0e0e0e;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #ccc;
+}
+
+.reassign-item strong { color: #e8e8e8; }
+.reassign-item em     { color: #f5a623; font-style: normal; }
+
+.reassign-confirm-text {
+    font-size: 13px;
+    color: #888;
+    margin: 0;
+    line-height: 1.6;
+}
+.reassign-confirm-text strong { color: #e8e8e8; }
+
+.btn-danger-confirm {
+    background: linear-gradient(135deg, #1a0a00, #3a1500);
+    border: 1px solid #7a3500;
+    color: #f5a623;
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+.btn-danger-confirm:hover    { opacity: 0.85; }
+.btn-danger-confirm:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Update conflict badge — now actionable not disabled */
+.user-check-conflict { opacity: 0.85; }
+.user-check-conflict:hover { border-color: #4a3000 !important; }
+.user-conflict-badge {
+    font-size: 10px;
+    color: #f5a623;
+    background: #1c1200;
+    border: 1px solid #4a3000;
+    border-radius: 4px;
+    padding: 2px 6px;
+    margin-top: 3px;
+    display: inline-block;
+}

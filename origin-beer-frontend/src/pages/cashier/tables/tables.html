@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Origin Beer — Cashier Tables</title>
+    <link rel="stylesheet" href="../../../shared.css">
+    <link rel="stylesheet" href="tables.css">
+</head>
+<body>
+<aside class="sidebar" id="sidebar"></aside>
+
+<main class="main">
+    <div class="topbar">
+        <div class="topbar-title">🪑 Tables</div>
+        <div class="topbar-right">
+            <div class="badge-online">Server active</div>
+            <span id="todayDate"></span>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="page-header">
+            <div>
+                <h2 id="branchTitle">🪑 Tables</h2>
+                <p>View and manage tables at <span id="branchNameHeader">your branch</span></p>
+            </div>
+            <button class="btn-primary" onclick="openCreateModal()">+ New Table</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-mini" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="stat-mini">
+                <span class="stat-mini-icon">🪑</span>
+                <div><div class="stat-mini-val" id="statTotal">—</div><div class="stat-mini-label">Total Tables</div></div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">✅</span>
+                <div><div class="stat-mini-val" id="statActive">—</div><div class="stat-mini-label">Active</div></div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">👥</span>
+                <div><div class="stat-mini-val" id="statCapacity">—</div><div class="stat-mini-label">Total Capacity</div></div>
+            </div>
+        </div>
+
+        <!-- Tables grid -->
+        <div class="tables-grid" id="tablesGrid">
+            <div class="loading-tables">⏳ Loading tables…</div>
+        </div>
+    </div>
+</main>
+
+<!-- ═══════ CREATE TABLE MODAL ══════════════════════════════════ -->
+<div class="modal-overlay" id="createOverlay" onclick="closeIfOutside()">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>➕ New Table</h3>
+            <button class="modal-close" onclick="closeModal('createOverlay')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div id="createError" class="modal-error" style="display:none"></div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Table Number / ID <span class="required">*</span></label>
+                    <input type="text" id="createNumber" placeholder="e.g. 5 or BAR-2" maxlength="10">
+                </div>
+                <div class="form-group">
+                    <label>Capacity (seats)</label>
+                    <input type="number" id="createCapacity" min="1" max="30" value="4">
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeModal('createOverlay')">Cancel</button>
+            <button class="btn-primary" id="btnCreate" onclick="submitCreate()">Create</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════ EDIT TABLE MODAL ════════════════════════════════════ -->
+<div class="modal-overlay" id="editOverlay" onclick="closeIfOutside()">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>✏️ Edit Table</h3>
+            <button class="modal-close" onclick="closeModal('editOverlay')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div id="editError" class="modal-error" style="display:none"></div>
+            <input type="hidden" id="editId">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Table Number <span class="required">*</span></label>
+                    <input type="text" id="editNumber" maxlength="10">
+                </div>
+                <div class="form-group">
+                    <label>Capacity (seats)</label>
+                    <input type="number" id="editCapacity" min="1" max="30">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="toggle-label">
+                    <input type="checkbox" id="editActive">
+                    <span>Active</span>
+                </label>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeModal('editOverlay')">Cancel</button>
+            <button class="btn-primary" id="btnEdit" onclick="submitEdit()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════ ORDER MODAL — two-column ════════════════════════════ -->
+<div class="order-modal-overlay" id="orderOverlay" onclick="closeIfOutside()">
+    <div class="order-modal">
+
+        <!-- Header -->
+        <div class="om-header">
+            <div class="om-header-left">
+                <h3 id="omTitle">📋 Order</h3>
+                <span id="omSubtitle">—</span>
+            </div>
+            <div class="om-header-right">
+                <div class="om-status-badge">OPEN</div>
+                <button class="om-close" onclick="closeModal('orderOverlay')">✕</button>
+            </div>
+        </div>
+
+        <!-- Error strip -->
+        <div class="om-error" id="orderError"></div>
+
+        <!-- Body: left + right -->
+        <div class="om-body">
+
+            <!-- ── LEFT: Add products ──────────────────────────── -->
+            <div class="om-left">
+                <div class="om-section-label">🧩 ADD PRODUCTS</div>
+
+                <!-- Budget + Suggest -->
+                <div class="om-budget-row">
+                    <input class="om-budget-input" type="number" id="omBudget" placeholder="Budget $" min="0">
+                    <button class="btn-suggest" onclick="suggestByBudget()">💡 Suggest</button>
+                </div>
+
+                <!-- Search -->
+                <div class="om-search-wrap">
+                    <span class="om-search-icon">🔍</span>
+                    <input type="text" id="omProductSearch" placeholder="Search product…" oninput="filterProducts()">
+                </div>
+
+                <!-- Product list -->
+                <div class="om-product-list" id="omProductList">
+                    <div class="om-no-products">Loading products…</div>
+                </div>
+            </div>
+
+            <!-- ── RIGHT: Order lines ──────────────────────────── -->
+            <div class="om-right">
+                <div class="om-section-label">📋 ORDER LINES</div>
+
+                <div class="om-lines" id="omLines">
+                    <div class="om-lines-empty">No products added yet</div>
+                </div>
+
+                <!-- Footer: total + pay -->
+                <div class="om-right-footer">
+                    <div class="om-total-row">
+                        <span class="om-total-label">Total</span>
+                        <span class="om-total-price" id="omTotal">$ 0</span>
+                    </div>
+                    <div class="om-loyalty">
+                        <span>🪙 Loyalty pts</span>
+                        <span class="om-loyalty-pts" id="omLoyalty">0 pts</span>
+                    </div>
+                    <textarea class="om-notes" id="omNotes" rows="2" placeholder="Notes, special instructions…"></textarea>
+                    <button class="om-pay-btn" id="btnSubmitOrder" onclick="submitOrder()">
+                        ✅ Close &amp; Pay Order
+                    </button>
+                </div>
+            </div>
+
+        </div><!-- /om-body -->
+    </div><!-- /order-modal -->
+</div>
+
+<script src="../../../shared.js"></script>
+<script src="tables.js"></script>
+</body>
+</html>
