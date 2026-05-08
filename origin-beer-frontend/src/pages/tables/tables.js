@@ -13,6 +13,11 @@
  *   PUT  /api/tables/{id}               → edit table
  *   DELETE /api/tables/{id}             → soft-delete table
  *   POST /api/orders                    → create order from table click
+ *
+ * Mejoras implementadas:
+ *  - Auto-ID: el ID de mesa se genera automáticamente (AUTO_INCREMENT).
+ *             Se muestra como solo lectura en el modal de creación y edición.
+ *  - El campo ID no es editable por el usuario en ningún caso.
  */
 
 requireAuth();
@@ -35,11 +40,28 @@ async function loadOpenOrders() {
     openOrders = orders.filter(o => o.status === 'OPEN');
 }
 
+// ── AUTO-ID PREVIEW ────────────────────────────────────────────────────────
+// Calcula el próximo ID de mesa basándose en el máximo ID cargado.
+// Este campo es solo lectura; el backend genera el ID real con AUTO_INCREMENT.
+
+function updateNextTableIdPreview() {
+    const el = document.getElementById('createNextId');
+    if (!el) return;
+    if (!allTables.length) {
+        // Si no hay mesas en esta sede, intentar estimarlo desde todas las mesas
+        el.value = '— (auto)';
+        return;
+    }
+    const maxId  = Math.max(...allTables.map(t => t.idTable || 0));
+    // Nota: el siguiente ID real lo decide el backend (global, no por sede).
+    // Mostramos el máximo local + 1 como estimación informativa.
+    el.value = String(maxId + 1).padStart(3, '0') + ' (est.)';
+}
+
 // ── Boot ───────────────────────────────────────────────────────────────────
 async function boot() {
     await loadOpenOrders();
     if (isAdmin) {
-        // Admin: load all branches for the filter dropdown
         const branches = await apiFetch('/api/branches') || [];
         myBranches = branches;
         buildBranchFilter(branches);
@@ -49,7 +71,6 @@ async function boot() {
             await loadTables(activeBranch);
         }
     } else {
-        // Staff: load only their assigned branches
         const branches = await apiFetch(`/api/tables/user/${user.idUser}`) || [];
         myBranches = branches;
 
@@ -74,7 +95,6 @@ function buildBranchFilter(branches) {
         opt.textContent = b.name;
         sel.appendChild(opt);
     });
-    // Hide filter row for staff with only one branch
     if (!isAdmin && branches.length <= 1) {
         document.getElementById('filterRow').style.display = 'none';
     }
@@ -85,9 +105,6 @@ async function loadTables(idBranch) {
     document.getElementById('tablesGrid').innerHTML = `
         <div class="loading-tables">⏳ Loading tables…</div>`;
 
-    // Admin: fetch all tables (active + inactive) via /api/tables/all, then filter by branch.
-    // This keeps inactive tables visible with their inactive styling — matching Cashier behavior.
-    // Staff roles keep using the active-only scoped endpoint (unchanged).
     let tables;
     if (isAdmin) {
         const all = await apiFetch('/api/tables/all') || [];
@@ -117,11 +134,10 @@ function renderGrid(tables) {
     }
 
     grid.innerHTML = tables.map(t => {
-        // Check if this table has an open order
         const openOrder  = openOrders.find(o => o.table?.idTable === t.idTable);
         const isOccupied = !!openOrder;
+        const idFormatted = String(t.idTable).padStart(3, '0');
 
-        // Status styling — mirrors Cashier module exactly
         const statusClass = !t.active  ? 'status-inactive'
                           : isOccupied ? 'status-occupied'
                           : 'status-active';
@@ -129,13 +145,11 @@ function renderGrid(tables) {
                           : isOccupied ? `🔴 Occupied — Order #${openOrder.idOrder}`
                           : '🟢 Available';
 
-        // Inactive tables: keep card in grid with muted styling, no click action
         const cardClass  = !t.active   ? 'table-card inactive-card'
                          : isOccupied  ? 'table-card table-occupied'
                          : 'table-card';
         const clickAttr  = t.active    ? `onclick="handleTableClick(${t.idTable})"` : '';
 
-        // Admin action buttons: toggle label based on current state
         const adminActions = isAdmin ? `
             <div class="table-actions" onclick="event.stopPropagation()">
                 <button class="btn-icon" title="Edit" onclick="openEditModal(${t.idTable})">✏️</button>
@@ -149,6 +163,7 @@ function renderGrid(tables) {
         return `
         <div class="${cardClass}" ${clickAttr} data-id="${t.idTable}">
             <div class="table-number">${t.tableNumber}</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-bottom:2px">ID: ${idFormatted}</div>
             <div class="table-capacity">👥 ${t.capacity} seats</div>
             <div class="table-status ${statusClass}">${statusLabel}</div>
             ${adminActions}
@@ -179,7 +194,6 @@ function handleTableClick(idTable) {
     const table = allTables.find(t => t.idTable === idTable);
     if (!table) return;
 
-    // FIX #2: block if table already has an open order
     const openOrder = openOrders.find(o => o.table?.idTable === idTable);
     if (openOrder) {
         alert(`⚠️ Table ${table.tableNumber} already has open Order #${openOrder.idOrder}.\nClose it before opening a new one.`);
@@ -229,7 +243,6 @@ async function submitOrder() {
         }
 
         closeModal('orderOverlay');
-        // Redirect to orders page and open the new order detail directly
         window.location.href = `../orders/orders.html?openOrder=${data.idOrder}`;
 
     } catch (e) {
@@ -243,8 +256,10 @@ async function submitOrder() {
 // ── Create table modal ─────────────────────────────────────────────────────
 function openCreateModal() {
     document.getElementById('createError').style.display = 'none';
-    document.getElementById('createNumber').value  = '';
+    document.getElementById('createNumber').value   = '';
     document.getElementById('createCapacity').value = '4';
+    // Actualizar preview de próximo ID
+    updateNextTableIdPreview();
     openModal('createOverlay');
 }
 
@@ -282,11 +297,16 @@ function openEditModal(idTable) {
     const table = allTables.find(t => t.idTable === idTable);
     if (!table) return;
 
-    document.getElementById('editId').value           = idTable;
+    document.getElementById('editId').value            = idTable;
     document.getElementById('editNumber').value        = table.tableNumber;
     document.getElementById('editCapacity').value      = table.capacity;
     document.getElementById('editActive').checked      = table.active;
     document.getElementById('editError').style.display = 'none';
+
+    // Mostrar ID actual como solo lectura
+    const editIdDisplay = document.getElementById('editIdDisplay');
+    if (editIdDisplay) editIdDisplay.value = String(idTable).padStart(3, '0');
+
     openModal('editOverlay');
 }
 
@@ -320,15 +340,12 @@ async function submitEdit() {
     }
 }
 
-// ── Toggle active / inactive — mirrors Cashier behavior exactly ───────────
-// Mesa desactivada permanece visible en el grid con clase inactive-card.
-// Si la mesa ya está inactiva, el botón permite re-activarla.
+// ── Toggle active / inactive ───────────────────────────────────────────────
 function confirmDelete(idTable, tableNumber, currentlyActive) {
     const action = currentlyActive ? 'Deactivate' : 'Activate';
     const nameEl = document.getElementById('deleteTableName');
     if (nameEl) nameEl.textContent = `Table ${tableNumber}`;
 
-    // Update confirmation modal text if element exists
     const msgEl = document.getElementById('deleteMessage');
     if (msgEl) {
         msgEl.textContent = currentlyActive
@@ -342,10 +359,6 @@ function confirmDelete(idTable, tableNumber, currentlyActive) {
 
 async function doDelete(idTable, currentlyActive) {
     try {
-        // Use PUT to set active flag explicitly — matches the backend PUT /api/tables/{id}
-        // which accepts { active: bool } without requiring tableNumber/capacity changes.
-        // The backend DELETE endpoint is a soft-delete (sets active=false) — we use PUT
-        // here so we can also re-activate, and the card stays in the grid either way.
         const table  = allTables.find(t => t.idTable === idTable);
         if (!table) { closeModal('deleteOverlay'); return; }
 
@@ -355,13 +368,12 @@ async function doDelete(idTable, currentlyActive) {
             body: JSON.stringify({
                 tableNumber : table.tableNumber,
                 capacity    : table.capacity,
-                active      : !currentlyActive      // toggle
+                active      : !currentlyActive
             })
         });
         if (!res.ok) { alert('Could not update table status'); return; }
 
         closeModal('deleteOverlay');
-        // Reload keeping inactive tables visible (Admin-scoped fetch via /api/tables/all)
         await loadTables(activeBranch);
     } catch (e) {
         alert('Connection error');

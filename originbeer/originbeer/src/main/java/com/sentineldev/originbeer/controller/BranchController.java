@@ -32,6 +32,16 @@ public class BranchController {
         this.userBranchRepository = userBranchRepository;
     }
 
+    // ══════════════════════════════════════════════════════════
+    // Genera el código de sucursal a partir del ID asignado.
+    // Formato: BR-001, BR-002, BR-003 ...
+    // Se usa después del primer save() para obtener el ID real
+    // (AUTO_INCREMENT) y nunca hay riesgo de duplicados.
+    // ══════════════════════════════════════════════════════════
+    private String buildBranchCode(Integer id) {
+        return String.format("BR-%03d", id);
+    }
+
     // ── GET /api/branches ────────────────────────────────────
     @GetMapping
     public List<Branch> listBranches() {
@@ -47,23 +57,26 @@ public class BranchController {
     }
 
     // ── POST /api/branches ───────────────────────────────────
+    @Transactional
     @PostMapping
     public ResponseEntity<?> createBranch(@RequestBody CreateBranchRequest request) {
-        if (request.getCode() == null || request.getCode().isBlank())
-            return ResponseEntity.status(400).body("Branch code is required");
+        // Validaciones — ya no se valida 'code' porque se genera automáticamente
         if (request.getName() == null || request.getName().isBlank())
             return ResponseEntity.status(400).body("Branch name is required");
         if (request.getCreatedBy() == null)
             return ResponseEntity.status(400).body("Creator user ID is required");
 
-        if (branchRepository.findByCode(request.getCode().toUpperCase()).isPresent())
-            return ResponseEntity.status(409).body("A branch with that code already exists");
-
         User creator = userRepository.findById(request.getCreatedBy())
                 .orElseThrow(() -> new RuntimeException("Creator user not found"));
 
+        // ── Paso 1: guardar con un code temporal para obtener el ID ──
+        // El code tiene restricción UNIQUE y NOT NULL, por lo que usamos
+        // un placeholder único basado en UUID para el primer insert.
+        // Inmediatamente después lo reemplazamos con el code definitivo.
+        String tempCode = "TEMP-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
         Branch branch = new Branch();
-        branch.setCode(request.getCode().toUpperCase().trim());
+        branch.setCode(tempCode);
         branch.setName(request.getName().trim());
         branch.setAddress(request.getAddress());
         branch.setCity(request.getCity());
@@ -72,7 +85,22 @@ public class BranchController {
         branch.setCreatedBy(creator);
         branch.setActive(true);
 
-        return ResponseEntity.status(201).body(branchRepository.save(branch));
+        // Primer save → genera el AUTO_INCREMENT id_branch
+        branch = branchRepository.save(branch);
+
+        // ── Paso 2: construir el code definitivo con el ID real ───────
+        String definitiveCode = buildBranchCode(branch.getIdBranch());
+
+        // Garantía adicional de unicidad (muy improbable pero defensivo)
+        if (branchRepository.findByCode(definitiveCode).isPresent()) {
+            // Si por alguna razón ya existe, usar el id como sufijo extendido
+            definitiveCode = String.format("BR-%05d", branch.getIdBranch());
+        }
+
+        branch.setCode(definitiveCode);
+        branch = branchRepository.save(branch);   // segundo save → actualiza el code
+
+        return ResponseEntity.status(201).body(branch);
     }
 
     // ── PUT /api/branches/{id} ───────────────────────────────
@@ -85,6 +113,7 @@ public class BranchController {
         if (request.getName() == null || request.getName().isBlank())
             return ResponseEntity.status(400).body("Branch name is required");
 
+        // El CODE nunca se actualiza — es inmutable una vez asignado
         branch.setName(request.getName().trim());
         branch.setAddress(request.getAddress());
         branch.setCity(request.getCity());
@@ -120,8 +149,6 @@ public class BranchController {
     }
 
     // ── PUT /api/branches/{id}/users ─────────────────────────
-    // force=false → rejects if any user is in another branch (409)
-    // force=true  → reassigns users (removes from old branch first)
     @Transactional
     @PutMapping("/{id}/users")
     public ResponseEntity<?> assignUsers(@PathVariable Integer id,
@@ -142,7 +169,6 @@ public class BranchController {
         boolean force = Boolean.TRUE.equals(request.getForce());
 
         if (!force) {
-            // Validate: no user can be in another branch
             List<String> conflicts = new ArrayList<>();
             for (Integer userId : incomingIds) {
                 boolean inOther = userBranchRepository.findAll().stream()
@@ -160,7 +186,6 @@ public class BranchController {
                                 + String.join(", ", conflicts)
                                 + ". Check them and confirm reassignment.");
         } else {
-            // Force mode: remove users from any other branch before assigning here
             for (Integer userId : incomingIds) {
                 userBranchRepository.findAll().stream()
                         .filter(ub -> ub.getUser().getIdUser().equals(userId)
@@ -169,7 +194,6 @@ public class BranchController {
             }
         }
 
-        // Additive update for this branch
         Set<Integer> currentIds = userBranchRepository.findByBranch_IdBranch(id)
                 .stream()
                 .map(ub -> ub.getUser().getIdUser())
@@ -177,13 +201,11 @@ public class BranchController {
 
         Set<Integer> incomingSet = new HashSet<>(incomingIds);
 
-        // Remove unchecked users
         userBranchRepository.findByBranch_IdBranch(id).forEach(ub -> {
             if (!incomingSet.contains(ub.getUser().getIdUser()))
                 userBranchRepository.delete(ub);
         });
 
-        // Add new users
         for (Integer userId : incomingIds) {
             if (!currentIds.contains(userId)) {
                 User user = userRepository.findById(userId).orElse(null);

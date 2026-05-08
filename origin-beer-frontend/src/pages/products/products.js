@@ -79,6 +79,47 @@ function updateStats() {
     document.getElementById('avgPrice').textContent        = '$ ' + Math.round(avg).toLocaleString('en-US');
 }
 
+// ── AUTO-ID PREVIEW ───────────────────────────────────────────
+// Muestra el próximo ID que el backend asignará al nuevo producto.
+// El campo es solo lectura; el backend genera el ID real con AUTO_INCREMENT.
+
+function updateNextProductIdPreview() {
+    const el = document.getElementById('fNextId');
+    if (!el) return;
+    if (!allProducts.length) {
+        el.value = '001';
+        return;
+    }
+    const maxId  = Math.max(...allProducts.map(p => p.idProduct || 0));
+    const nextId = maxId + 1;
+    el.value = String(nextId).padStart(3, '0');
+}
+
+// ══════════════════════════════════════════════════════════════
+// VALIDACIÓN DE PRECIOS
+// Regla: salePrice >= purchaseCost  (precio venta ≥ precio compra)
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * Valida en tiempo real mientras el usuario escribe.
+ * Llama a esta función con oninput en los campos fSalePrice / fCostPrice.
+ */
+function validatePricesLive() {
+    const salePrice  = parseFloat(document.getElementById('fSalePrice').value)  || 0;
+    const costPrice  = parseFloat(document.getElementById('fCostPrice').value)  || 0;
+    const warnEl     = document.getElementById('priceWarning');
+
+    if (!warnEl) return;
+
+    if (salePrice > 0 && costPrice > 0 && salePrice < costPrice) {
+        warnEl.textContent = `⚠️ Sale price ($${salePrice.toLocaleString('en-US')}) cannot be less than purchase cost ($${costPrice.toLocaleString('en-US')}).`;
+        warnEl.style.display = 'block';
+    } else {
+        warnEl.style.display = 'none';
+        warnEl.textContent   = '';
+    }
+}
+
 // ── FILTER ────────────────────────────────────────────────────
 function filter() {
     const search = document.getElementById('search').value.toLowerCase();
@@ -112,8 +153,9 @@ function renderTable(products) {
         tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="empty-icon">🔍</span><p>No products found</p></div></td></tr>`;
     } else {
         tbody.innerHTML = page.map(p => {
-            const catName = p.category?.name || '—';
-            const icon    = categoryIcons[catName] || '📦';
+            const catName     = p.category?.name || '—';
+            const icon        = categoryIcons[catName] || '📦';
+            const idFormatted = String(p.idProduct).padStart(3, '0');
             return `
             <tr>
                 <td>
@@ -121,7 +163,7 @@ function renderTable(products) {
                         <div class="product-icon">${icon}</div>
                         <div>
                             <div class="product-name">${p.name}</div>
-                            <div class="product-code">${p.code}</div>
+                            <div class="product-code">${p.code} <span style="font-size:10px;color:var(--text-muted)">· ID: ${idFormatted}</span></div>
                         </div>
                     </div>
                 </td>
@@ -189,6 +231,7 @@ function openCreateModal() {
     document.getElementById('modalTitle').textContent = '🛒 New Product';
     document.getElementById('btnSave').textContent    = 'Create Product';
     document.getElementById('fCode').removeAttribute('disabled');
+    updateNextProductIdPreview();   // ← muestra el próximo ID automático
     document.getElementById('modalOverlay').classList.add('active');
 }
 
@@ -199,6 +242,11 @@ function openEditModal(id) {
     clearForm();
     document.getElementById('modalTitle').textContent    = '✏️ Edit Product';
     document.getElementById('btnSave').textContent       = 'Save Changes';
+
+    // Mostrar ID actual en el campo de solo lectura
+    const nextIdEl = document.getElementById('fNextId');
+    if (nextIdEl) nextIdEl.value = String(id).padStart(3, '0');
+
     document.getElementById('fCode').value        = p.code;
     document.getElementById('fCode').setAttribute('disabled', true);
     document.getElementById('fName').value        = p.name;
@@ -222,6 +270,11 @@ function clearForm() {
     });
     document.getElementById('fCategory').value = '';
     document.getElementById('fUnit').value = 'unit';
+    const nextIdEl = document.getElementById('fNextId');
+    if (nextIdEl) nextIdEl.value = '—';
+    // Ocultar advertencia de precio al limpiar
+    const warnEl = document.getElementById('priceWarning');
+    if (warnEl) { warnEl.style.display = 'none'; warnEl.textContent = ''; }
     hideError('formError');
 }
 
@@ -235,9 +288,21 @@ async function saveProduct() {
     const costPrice  = parseFloat(document.getElementById('fCostPrice').value) || 0;
     const idCategory = parseInt(document.getElementById('fCategory').value);
 
+    // ── Validaciones básicas ──────────────────────────────────
     if (!name)                             { showError('formError', 'Product name is required.'); return; }
     if (!idCategory)                       { showError('formError', 'Please select a category.'); return; }
     if (isNaN(salePrice) || salePrice < 0) { showError('formError', 'Enter a valid sale price.'); return; }
+
+    // ══════════════════════════════════════════════════════════
+    // VALIDACIÓN PRECIO VENTA >= PRECIO COMPRA
+    // Bloquea el guardado si el precio de venta es menor al costo.
+    // ══════════════════════════════════════════════════════════
+    if (!isNaN(costPrice) && costPrice > 0 && salePrice < costPrice) {
+        showError('formError',
+            `❌ Sale price ($${salePrice.toLocaleString('en-US')}) cannot be less than purchase cost ($${costPrice.toLocaleString('en-US')}). Please correct the prices before saving.`
+        );
+        return;
+    }
 
     const btn = document.getElementById('btnSave');
     btn.disabled = true;

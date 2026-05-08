@@ -8,6 +8,30 @@ let allBranches  = [];
 let editingId    = null;   // null = create mode, number = edit mode
 let assigningId  = null;   // branch id being assigned
 
+// ══════════════════════════════════════════════════════════════
+// PHONE VALIDATION — Solo dígitos, exactamente 10
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * Valida que el teléfono tenga exactamente 10 dígitos numéricos.
+ * Retorna null si es válido (o vacío), o un string con el error.
+ */
+function validatePhone(value) {
+    if (!value || value.trim() === '') return null; // campo opcional
+    const digits = value.replace(/\D/g, '');
+    if (value.trim() !== digits) return 'Phone number must contain only digits (no letters or special characters).';
+    if (digits.length !== 10)   return 'Phone number must have exactly 10 digits.';
+    return null;
+}
+
+/**
+ * Permite solo dígitos mientras el usuario escribe.
+ * Adjuntar con: oninput="enforcePhoneInput(this)"
+ */
+function enforcePhoneInput(input) {
+    input.value = input.value.replace(/\D/g, '').slice(0, 10);
+}
+
 // ── LOAD ─────────────────────────────────────────────────────
 async function loadBranches() {
     try {
@@ -30,6 +54,22 @@ function updateStats() {
     document.getElementById('totalBranches').textContent = allBranches.length;
     document.getElementById('totalActive').textContent   = active;
     document.getElementById('totalInactive').textContent = allBranches.length - active;
+}
+
+// ── AUTO-ID PREVIEW ──────────────────────────────────────────
+// Calcula el próximo ID de sucursal (último + 1) y lo muestra
+// en el campo de solo lectura del modal de creación.
+
+function updateNextBranchIdPreview() {
+    const el = document.getElementById('fNextId');
+    if (!el) return;
+    if (!allBranches.length) {
+        el.value = '001';
+        return;
+    }
+    const maxId  = Math.max(...allBranches.map(b => b.idBranch || 0));
+    const nextId = maxId + 1;
+    el.value = String(nextId).padStart(3, '0');
 }
 
 // ── FILTER ───────────────────────────────────────────────────
@@ -58,13 +98,15 @@ function renderBranches(branches) {
         grid.innerHTML = `<div style="grid-column:1/-1"><div class="empty-state"><span class="empty-icon">🔍</span><p>No branches found</p></div></div>`;
         return;
     }
-    grid.innerHTML = branches.map(s => `
+    grid.innerHTML = branches.map(s => {
+        const idFormatted = String(s.idBranch).padStart(3, '0');
+        return `
         <div class="branch-card ${s.active ? '' : 'branch-card-inactive'}">
             <div class="branch-card-header">
                 <div>
                     <div class="branch-icon">🏢</div>
                     <div class="branch-name">${s.name}</div>
-                    <div class="branch-code">${s.code}</div>
+                    <div class="branch-code">${s.code} <span style="font-size:10px;color:var(--text-muted)">· ID: ${idFormatted}</span></div>
                 </div>
                 <span class="badge ${s.active ? 'badge-active' : 'badge-inactive'}">${s.active ? 'Active' : 'Inactive'}</span>
             </div>
@@ -82,8 +124,8 @@ function renderBranches(branches) {
                     ${s.active ? '🔴 Deactivate' : '✅ Activate'}
                 </button>
             </div>
-        </div>
-    `).join('');
+        </div>`;
+    }).join('');
 }
 
 function escHtml(str) {
@@ -99,6 +141,7 @@ function openCreateModal() {
     document.getElementById('modalTitle').textContent = '🏢 New Branch';
     document.getElementById('btnSave').textContent    = 'Create Branch';
     document.getElementById('fCode').removeAttribute('disabled');
+    updateNextBranchIdPreview();   // ← muestra el próximo ID automático
     document.getElementById('modalOverlay').classList.add('active');
 }
 
@@ -111,7 +154,10 @@ function openEditModal(id) {
     document.getElementById('modalTitle').textContent = '✏️ Edit Branch';
     document.getElementById('btnSave').textContent    = 'Save Changes';
 
-    // Fill form
+    // Mostrar ID actual como solo lectura
+    const nextIdEl = document.getElementById('fNextId');
+    if (nextIdEl) nextIdEl.value = String(id).padStart(3, '0');
+
     document.getElementById('fCode').value    = branch.code;
     document.getElementById('fName').value    = branch.name;
     document.getElementById('fCity').value    = branch.city    || '';
@@ -119,7 +165,7 @@ function openEditModal(id) {
     document.getElementById('fAddress').value = branch.address || '';
     document.getElementById('fEmail').value   = branch.email   || '';
 
-    // Code is not editable in edit mode (it's a unique key)
+    // Code no es editable en modo edición
     document.getElementById('fCode').setAttribute('disabled', true);
 
     document.getElementById('modalOverlay').classList.add('active');
@@ -131,11 +177,12 @@ function closeCreateModal() {
     editingId = null;
 }
 
-
 function clearForm() {
     ['fCode', 'fName', 'fCity', 'fPhone', 'fAddress', 'fEmail'].forEach(id => {
         document.getElementById(id).value = '';
     });
+    const nextIdEl = document.getElementById('fNextId');
+    if (nextIdEl) nextIdEl.value = '—';
     hideError('modalError');
 }
 
@@ -143,10 +190,15 @@ function clearForm() {
 async function saveBranch() {
     hideError('modalError');
 
-    const name = document.getElementById('fName').value.trim();
-    const code = document.getElementById('fCode').value.trim();
+    const name  = document.getElementById('fName').value.trim();
+    const code  = document.getElementById('fCode').value.trim();
+    const phone = document.getElementById('fPhone').value.trim();
 
     if (!name) { showError('modalError', 'Branch name is required.'); return; }
+
+    // ── Validación de teléfono ────────────────────────────────
+    const phoneErr = validatePhone(phone);
+    if (phoneErr) { showError('modalError', phoneErr); return; }
 
     const btn = document.getElementById('btnSave');
     btn.disabled = true;
@@ -170,7 +222,7 @@ async function saveBranch() {
                     name,
                     address:   document.getElementById('fAddress').value.trim() || null,
                     city:      document.getElementById('fCity').value.trim()    || null,
-                    phone:     document.getElementById('fPhone').value.trim()   || null,
+                    phone:     phone || null,
                     email:     document.getElementById('fEmail').value.trim()   || null,
                     createdBy: user.idUser
                 })
@@ -187,7 +239,7 @@ async function saveBranch() {
                     name,
                     address: document.getElementById('fAddress').value.trim() || null,
                     city:    document.getElementById('fCity').value.trim()    || null,
-                    phone:   document.getElementById('fPhone').value.trim()   || null,
+                    phone:   phone || null,
                     email:   document.getElementById('fEmail').value.trim()   || null,
                 })
             });
@@ -240,10 +292,9 @@ async function openAssignModal(branchId, branchName) {
     list.innerHTML = `<div class="empty-state"><span class="empty-icon">⏳</span><p>Loading users...</p></div>`;
 
     try {
-        // Load all users and current assignments in parallel
         const [usersRes, assignedRes] = await Promise.all([
-            fetch(`${API}/api/users`,                          { headers: { 'Authorization': `Bearer ${getToken()}` } }),
-            fetch(`${API}/api/branches/${branchId}/users`,        { headers: { 'Authorization': `Bearer ${getToken()}` } })
+            fetch(`${API}/api/users`,                       { headers: { 'Authorization': `Bearer ${getToken()}` } }),
+            fetch(`${API}/api/branches/${branchId}/users`,  { headers: { 'Authorization': `Bearer ${getToken()}` } })
         ]);
 
         if (usersRes.status === 401) { logout(); return; }
@@ -279,8 +330,6 @@ function closeAssignModal() {
     assigningId = null;
 }
 
-
-// Pending payload while reassign confirmation is open
 let _pendingReassignIds = null;
 
 async function saveAssignments() {
@@ -294,14 +343,12 @@ async function saveAssignments() {
     const admin = getUser();
     if (!admin || !admin.idUser) { showError('assignError', 'Session error. Please log in again.'); return; }
 
-    // Detect which selected users are in another branch (need reassignment)
     const ubMap = window._userBranchMap || {};
     const toReassign = selectedIds
         .filter(id => ubMap[id])
         .map(id => ({ id, branchName: ubMap[id] }));
 
     if (toReassign.length > 0) {
-        // Show confirmation modal before proceeding
         _pendingReassignIds = selectedIds;
         const targetName = document.getElementById('assignBranchName').textContent;
         document.getElementById('reassignTargetBranch').textContent = targetName;
@@ -315,7 +362,6 @@ async function saveAssignments() {
         return;
     }
 
-    // No conflicts — save directly
     await doSaveAssignments(selectedIds);
 }
 

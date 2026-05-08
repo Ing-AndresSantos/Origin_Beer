@@ -1,6 +1,7 @@
 package com.sentineldev.originbeer.controller;
 
 import com.sentineldev.originbeer.dto.AddDetailRequest;
+import com.sentineldev.originbeer.dto.CloseOrderRequest;
 import com.sentineldev.originbeer.dto.CreateOrderRequest;
 import com.sentineldev.originbeer.model.*;
 import com.sentineldev.originbeer.repository.*;
@@ -9,7 +10,9 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -24,6 +27,8 @@ public class OrderController {
     private final UserRepository          userRepo;
     private final ProductRepository       productRepo;
     private final ProductBranchRepository pbRepo;
+    private final InvoiceRepository       invoiceRepo;
+    private final PaymentMethodRepository paymentRepo;
 
     public OrderController(OrderTicketRepository orderRepo,
                            OrderDetailRepository detailRepo,
@@ -31,7 +36,9 @@ public class OrderController {
                            BranchRepository branchRepo,
                            UserRepository userRepo,
                            ProductRepository productRepo,
-                           ProductBranchRepository pbRepo) {
+                           ProductBranchRepository pbRepo,
+                           InvoiceRepository invoiceRepo,
+                           PaymentMethodRepository paymentRepo) {
         this.orderRepo   = orderRepo;
         this.detailRepo  = detailRepo;
         this.tableRepo   = tableRepo;
@@ -39,6 +46,8 @@ public class OrderController {
         this.userRepo    = userRepo;
         this.productRepo = productRepo;
         this.pbRepo      = pbRepo;
+        this.invoiceRepo = invoiceRepo;
+        this.paymentRepo = paymentRepo;
     }
 
     // ── Helper: compute total for an order ───────────────────
@@ -66,10 +75,18 @@ public class OrderController {
         return map;
     }
 
-    // ═══════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════
+    // GET /api/payment-methods  — Listar métodos de pago activos
+    // US-24
+    // ══════════════════════════════════════════════════════════
+    @GetMapping("/payment-methods")
+    public List<PaymentMethod> listPaymentMethods() {
+        return paymentRepo.findByActiveTrue();
+    }
+
+    // ══════════════════════════════════════════════════════════
     // US-18 — CREATE ORDER BY TABLE
-    // FIX #2: Validate that the table has no OPEN order already
-    // ═══════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════
     @PostMapping
     public ResponseEntity<?> createOrder(@RequestBody CreateOrderRequest req) {
         if (req.getIdBranch() == null || req.getIdTable() == null || req.getIdWaiter() == null)
@@ -82,7 +99,6 @@ public class OrderController {
         User      waiter = userRepo.findById(req.getIdWaiter())
                 .orElseThrow(() -> new RuntimeException("Waiter not found"));
 
-        // ── FIX #2: block if the table already has an OPEN order ──
         boolean tableOccupied = orderRepo
                 .findByBranch_IdBranchAndStatus(req.getIdBranch(), OrderTicket.OrderStatus.OPEN)
                 .stream()
@@ -104,9 +120,9 @@ public class OrderController {
         return ResponseEntity.status(201).body(enrichOrder(saved));
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // US-19 — ADD PRODUCTS TO AN ORDER  (Iterativo)
-    // ═══════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════
+    // US-19 — ADD PRODUCTS TO AN ORDER
+    // ══════════════════════════════════════════════════════════
     @PostMapping("/{id}/details")
     public ResponseEntity<?> addDetail(@PathVariable Long id,
                                        @RequestBody AddDetailRequest req) {
@@ -158,7 +174,6 @@ public class OrderController {
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         if (order.getStatus() == OrderTicket.OrderStatus.PAID)
             return ResponseEntity.status(409).body("Cannot modify a PAID order");
-
         detailRepo.deleteById(idDetail);
         return ResponseEntity.ok("Detail removed");
     }
@@ -171,12 +186,22 @@ public class OrderController {
         return ResponseEntity.ok(detailRepo.findByOrder_IdOrder(id));
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // US-20/21 — CLOSE ORDER  (Divide y Vencerás)
-    // ═══════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════
+    // US-23 — CLOSE ORDER + REGISTER PAYMENT (Sprint 5)
+    // US-24 — Payment method (CASH / DEBIT / CREDIT)
+    // US-25 — Generate internal invoice
+    // US-26 — Register branch on each sale
+    //
+    // Algoritmo Divide y Vencerás:
+    //   Fase 1 → validaciones (stock, pago, duplicado de factura)
+    //   Fase 2 → descontar inventario
+    //   Fase 3 → cerrar orden y crear factura
+    // ══════════════════════════════════════════════════════════
     @Transactional
     @PatchMapping("/{id}/close")
-    public ResponseEntity<?> closeOrder(@PathVariable Long id) {
+    public ResponseEntity<?> closeOrder(@PathVariable Long id,
+                                        @RequestBody(required = false) CloseOrderRequest req) {
+        // ── FASE 1: Validaciones ──────────────────────────────
         OrderTicket order = orderRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
 
@@ -187,7 +212,41 @@ public class OrderController {
         if (details.isEmpty())
             return ResponseEntity.status(400).body("Cannot close an empty order");
 
-        // Phase 1 — validate stock
+        // Validar que no exista ya una factura para este pedido (idempotencia)
+        if (invoiceRepo.existsByOrder_IdOrder(id))
+            return ResponseEntity.status(409).body("An invoice already exists for this order");
+
+        // Validar método de pago (US-24)
+        if (req == null || req.getIdPaymentMethod() == null)
+            return ResponseEntity.status(400).body("Payment method is required (idPaymentMethod)");
+
+        PaymentMethod paymentMethod = paymentRepo.findById(req.getIdPaymentMethod())
+                .orElseThrow(() -> new RuntimeException("Payment method not found"));
+
+        // Validar cajero (US-23)
+        if (req.getIdCashier() == null)
+            return ResponseEntity.status(400).body("Cashier ID is required (idCashier)");
+
+        User cashier = userRepo.findById(req.getIdCashier())
+                .orElseThrow(() -> new RuntimeException("Cashier user not found"));
+
+        // Calcular total del pedido
+        BigDecimal orderTotal = computeOrderTotal(id);
+
+        // Validar monto recibido (obligatorio para calcular cambio)
+        BigDecimal amountReceived = req.getAmountReceived();
+        if (amountReceived == null || amountReceived.compareTo(BigDecimal.ZERO) < 0)
+            return ResponseEntity.status(400).body("amountReceived is required and must be >= 0");
+
+        // Para CASH: el monto recibido debe cubrir el total
+        if ("CASH".equalsIgnoreCase(paymentMethod.getName())
+                && amountReceived.compareTo(orderTotal) < 0) {
+            return ResponseEntity.status(400)
+                    .body("Amount received ($" + amountReceived
+                            + ") is less than the order total ($" + orderTotal + ")");
+        }
+
+        // Validar stock
         List<String> stockErrors = new ArrayList<>();
         for (OrderDetail line : details) {
             ProductBranch pb = pbRepo
@@ -204,7 +263,7 @@ public class OrderController {
             return ResponseEntity.status(409)
                     .body("Insufficient stock:\n" + String.join("\n", stockErrors));
 
-        // Phase 2 — deduct inventory
+        // ── FASE 2: Descontar inventario ──────────────────────
         for (OrderDetail line : details) {
             ProductBranch pb = pbRepo
                     .findByProduct_IdProductAndBranch_IdBranch(
@@ -215,18 +274,71 @@ public class OrderController {
             pbRepo.save(pb);
         }
 
-        // Phase 3 — mark as PAID
+        // ── FASE 3: Cerrar orden y crear factura ──────────────
         order.setStatus(OrderTicket.OrderStatus.PAID);
         order.setClosedAt(LocalDateTime.now());
         orderRepo.save(order);
 
-        return ResponseEntity.ok("Order #" + id + " closed and inventory updated");
+        // ── Generar número de factura único ───────────────────
+        // Formato: INV-{branchCode}-{yyyyMMdd}-{secuencia 6 dígitos}
+        // La secuencia es la cantidad de facturas de la sede en el día + 1
+        String branchCode = order.getBranch().getCode().replace("-", "");
+        String dateStr    = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        LocalDateTime startOfDay = LocalDate.now().atStartOfDay();
+        LocalDateTime endOfDay   = startOfDay.plusDays(1).minusNanos(1);
+        long todayCount = invoiceRepo.countByBranch_IdBranchAndIssuedAtBetween(
+                order.getBranch().getIdBranch(), startOfDay, endOfDay);
+        String invoiceNumber = String.format("INV-%s-%s-%06d",
+                branchCode, dateStr, todayCount + 1);
+
+        // ── Crear factura (US-25, US-26) ──────────────────────
+        Invoice invoice = new Invoice();
+        invoice.setOrder(order);
+        invoice.setBranch(order.getBranch());     // US-26: sede de la venta
+        invoice.setCashier(cashier);              // US-23: cajero responsable
+        invoice.setPaymentMethod(paymentMethod);  // US-24: método de pago
+        invoice.setInvoiceNumber(invoiceNumber);
+        invoice.setSubtotal(orderTotal);
+        invoice.setTotal(orderTotal);
+        invoice.setAmountReceived(amountReceived);
+        invoice.setNotes(req.getNotes());
+
+        Invoice savedInvoice = invoiceRepo.save(invoice);
+
+        // ── Respuesta con factura completa ────────────────────
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("message",       "Order #" + id + " closed successfully");
+        response.put("invoiceNumber",  savedInvoice.getInvoiceNumber());
+        response.put("idInvoice",      savedInvoice.getIdInvoice());
+        response.put("branch",         order.getBranch().getName());
+        response.put("branchCode",     order.getBranch().getCode());
+        response.put("table",          order.getTable().getTableNumber());
+        response.put("cashier",        cashier.getFirstName() + " " + cashier.getLastName());
+        response.put("paymentMethod",  paymentMethod.getName());
+        response.put("subtotal",       savedInvoice.getSubtotal());
+        response.put("total",          savedInvoice.getTotal());
+        response.put("amountReceived", savedInvoice.getAmountReceived());
+        response.put("changeGiven",    savedInvoice.getChangeGiven());
+        response.put("issuedAt",       savedInvoice.getIssuedAt());
+        response.put("details",        details);
+
+        return ResponseEntity.ok(response);
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // US-22 — LIST ORDERS  (FIX #1: includes total per order)
-    // Ordenamiento: TimSort descendente por fecha
-    // ═══════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════
+    // GET /api/orders/{id}/invoice — Recuperar factura de un pedido
+    // US-25
+    // ══════════════════════════════════════════════════════════
+    @GetMapping("/{id}/invoice")
+    public ResponseEntity<?> getInvoice(@PathVariable Long id) {
+        return invoiceRepo.findByOrder_IdOrder(id)
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElse(ResponseEntity.status(404).body("No invoice found for order #" + id));
+    }
+
+    // ══════════════════════════════════════════════════════════
+    // US-22 — LIST ORDERS
+    // ══════════════════════════════════════════════════════════
     @GetMapping
     public List<Map<String, Object>> listAll() {
         return orderRepo.findAll()
@@ -255,15 +367,9 @@ public class OrderController {
         }
 
         orders.sort(Comparator.comparing(OrderTicket::getOpenedAt).reversed());
-
-        List<Map<String, Object>> result = orders.stream()
-                .map(this::enrichOrder)
-                .collect(Collectors.toList());
-
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(orders.stream().map(this::enrichOrder).collect(Collectors.toList()));
     }
 
-    // ── GET single order (also enriched with total) ───────────
     @GetMapping("/{id}")
     public ResponseEntity<?> getOrder(@PathVariable Long id) {
         return orderRepo.findById(id)
@@ -271,14 +377,12 @@ public class OrderController {
                 .orElse(ResponseEntity.status(404).body("Order not found"));
     }
 
-    // ═══════════════════════════════════════════════════════════
-    // Problema de la Mochila — Knapsack suggest combo
-    // ═══════════════════════════════════════════════════════════
+    // ══════════════════════════════════════════════════════════
+    // Knapsack suggest combo
+    // ══════════════════════════════════════════════════════════
     @GetMapping("/suggest-combo")
-    public ResponseEntity<?> suggestCombo(
-            @RequestParam Integer idBranch,
-            @RequestParam Integer budget) {
-
+    public ResponseEntity<?> suggestCombo(@RequestParam Integer idBranch,
+                                          @RequestParam Integer budget) {
         if (budget == null || budget <= 0)
             return ResponseEntity.status(400).body("budget must be > 0");
 
@@ -295,8 +399,7 @@ public class OrderController {
             int price = stock.get(i - 1).getProduct().getSalePrice().intValue();
             for (int w = 0; w <= W; w++) {
                 dp[i][w] = dp[i - 1][w];
-                if (price <= w)
-                    dp[i][w] = Math.max(dp[i][w], dp[i - 1][w - price] + price);
+                if (price <= w) dp[i][w] = Math.max(dp[i][w], dp[i - 1][w - price] + price);
             }
         }
 
@@ -322,7 +425,6 @@ public class OrderController {
         return ResponseEntity.ok(result);
     }
 
-    // ── Tables for a branch ───────────────────────────────────
     @GetMapping("/tables/{idBranch}")
     public ResponseEntity<?> getTablesByBranch(@PathVariable Integer idBranch) {
         return ResponseEntity.ok(tableRepo.findByBranch_IdBranchAndActiveTrue(idBranch));
