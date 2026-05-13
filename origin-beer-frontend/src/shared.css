@@ -286,9 +286,14 @@ body {
     text-align: center;
 }
 .logo { text-align: center; margin-bottom: 36px; }
-.logo-icon { width: 100px; height: 100px; object-fit: contain; display: block; margin: 0 auto 12px; }
+.logo { text-align: center; margin-bottom: 36px; }
+.logo-icon {width: 42px; height: 42px;  object-fit: contain; flex-shrink: 0;display: block;}
 .logo h1 { color: var(--orange); font-size: 26px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
 .logo p { color: var(--login-subtitle); font-size: 13px; margin-top: 4px; letter-spacing: 1px; }
+
+.sidebar-logo img {
+    display: block;
+}
 
 .sidebar-footer {
     padding: 16px 20px;

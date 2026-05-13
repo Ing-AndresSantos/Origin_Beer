@@ -5,100 +5,105 @@ initSidebar('inventory');
 initDate();
 
 let allInventory = [];
-let userBranchId = null;
+let userBranchId   = null;
 let userBranchName = '—';
-let currentPage = 1;
-const PER_PAGE = 12;
+let currentPage    = 1;
+const PER_PAGE     = 12;
 
 // editing state for stock modal
 let editingIdProduct = null;
 let editingIdBranch  = null;
 
-// ── INITIALIZATION ────────────────────────────────────────────
-async function initializePage() {
-    const user = getUser();
-    if (!user?.idUser) {
-        console.error('No user found');
-        logout();
-        return;
-    }
-    
-    // Get the user's branch
-    await getUserBranchId(user.idUser);
-    
-    if (!userBranchId) {
-        document.getElementById('inventoryTable').innerHTML =
-            `<tr><td colspan="6"><div class="empty-state"><span class="empty-icon">❌</span><p>No branch assigned to this cashier</p></div></td></tr>`;
-        return;
-    }
-    
-    // Load inventory for this branch
-    await loadInventory();
-}
-
-async function getUserBranchId(userId) {
+// ── BRANCH RESOLUTION ─────────────────────────────────────────
+// Shared pattern: iterates branches and finds the one where this
+// user appears in /api/branches/{id}/users. Respects branch-level
+// access — cashier only sees their own branch.
+async function resolveUserBranch(userId) {
     try {
         const res = await fetch(`${API}/api/branches`, {
             headers: { 'Authorization': `Bearer ${getToken()}` }
         });
-        if (!res.ok) return;
-        
+        if (!res.ok) return null;
         const branches = await res.json();
-        
-        // Find branch(es) assigned to this user
+
         for (const branch of branches) {
             try {
                 const r = await fetch(`${API}/api/branches/${branch.idBranch}/users`, {
                     headers: { 'Authorization': `Bearer ${getToken()}` }
                 });
                 if (!r.ok) continue;
-                
                 const users = await r.json();
                 if (users.some(u => u.idUser === userId)) {
-                    userBranchId = branch.idBranch;
                     userBranchName = branch.name;
-                    document.getElementById('branchNameHeader').textContent = branch.name;
-                    break;
+                    const headerEl = document.getElementById('branchNameHeader');
+                    if (headerEl) headerEl.textContent = branch.name;
+                    return branch.idBranch;
                 }
-            } catch (e) {}
+            } catch (_) {}
         }
     } catch (e) {
         console.error('Could not load branches', e);
     }
+    return null;
+}
+
+// ── INITIALIZATION ────────────────────────────────────────────
+async function initializePage() {
+    const user = getUser();
+    if (!user?.idUser) { logout(); return; }
+
+    userBranchId = await resolveUserBranch(user.idUser);
+
+    if (!userBranchId) {
+        document.getElementById('inventoryTable').innerHTML =
+            `<tr><td colspan="7"><div class="empty-state">
+                <span class="empty-icon">❌</span>
+                <p>No branch assigned to this cashier</p>
+            </div></td></tr>`;
+        return;
+    }
+
+    await loadInventory();
 }
 
 // ── LOAD ──────────────────────────────────────────────────────
 async function loadInventory() {
     try {
-        const res = await fetch(`${API}/api/inventory`, {
+        // Fetch inventory scoped to this branch directly — no need to filter client-side
+        const res = await fetch(`${API}/api/inventory/branch/${userBranchId}`, {
             headers: { 'Authorization': `Bearer ${getToken()}` }
         });
         if (res.status === 401) { logout(); return; }
-        
-        const inventory = await res.json();
-        
-        // Filter only items for this cashier's branch
-        allInventory = inventory.filter(i => i.branch?.idBranch === userBranchId);
-        
+
+        allInventory = await res.json();
+
         updateStats();
         filter();
     } catch (e) {
         console.error('Error loading inventory:', e);
         document.getElementById('inventoryTable').innerHTML =
-            `<tr><td colspan="6"><div class="empty-state"><span class="empty-icon">❌</span><p>Could not connect to the server</p></div></td></tr>`;
+            `<tr><td colspan="7"><div class="empty-state">
+                <span class="empty-icon">❌</span>
+                <p>Could not connect to the server</p>
+            </div></td></tr>`;
     }
 }
 
 // ── STATS ─────────────────────────────────────────────────────
 function updateStats() {
-    const lowStock  = allInventory.filter(i => i.quantity <= i.minStock).length;
-    const products  = new Set(allInventory.map(i => i.product?.idProduct)).size;
-    const totalValue = allInventory.reduce((sum, i) => sum + ((i.product?.price || 0) * i.quantity), 0);
+    const lowStock = allInventory.filter(i => i.quantity <= i.minStock).length;
+    const products = new Set(allInventory.map(i => i.product?.idProduct)).size;
 
-    document.getElementById('statTotalItems').textContent = allInventory.length;
-    document.getElementById('statLowStock').textContent = lowStock;
-    document.getElementById('statProducts').textContent = products;
-    document.getElementById('statTotalValue').textContent = '$' + totalValue.toLocaleString('en-US', { maximumFractionDigits: 2 });
+    // Use salePrice (the correct field from the Product model)
+    const totalValue = allInventory.reduce((sum, i) => {
+        return sum + (Number(i.product?.salePrice || 0) * (i.quantity || 0));
+    }, 0);
+
+    document.getElementById('statTotalItems').textContent  = allInventory.length;
+    document.getElementById('statLowStock').textContent    = lowStock;
+    document.getElementById('statProducts').textContent    = products;
+    document.getElementById('statTotalValue').textContent  =
+        '$ ' + totalValue.toLocaleString('es-CO', { maximumFractionDigits: 2 });
 }
 
 // ── FILTER ────────────────────────────────────────────────────
@@ -107,15 +112,16 @@ function filter() {
     const stock  = document.getElementById('filterStock').value;
 
     const result = allInventory.filter(i => {
-        const text = `${i.product?.name || ''} ${i.product?.code || ''}`.toLowerCase();
+        const text       = `${i.product?.name || ''} ${i.product?.code || ''}`.toLowerCase();
         const matchSearch = text.includes(search);
-        const matchStock = !stock ||
+        const matchStock  = !stock ||
             (stock === 'low' && i.quantity <= i.minStock) ||
-            (stock === 'ok' && i.quantity > i.minStock);
+            (stock === 'ok'  && i.quantity >  i.minStock);
         return matchSearch && matchStock;
     });
 
-    document.getElementById('resultInfo').textContent = `${result.length} item${result.length !== 1 ? 's' : ''} found`;
+    document.getElementById('resultInfo').textContent =
+        `${result.length} item${result.length !== 1 ? 's' : ''} found`;
     currentPage = 1;
     renderTable(result);
 }
@@ -130,12 +136,19 @@ function renderTable(items) {
     const page       = items.slice(start, end);
 
     if (!page.length) {
-        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><span class="empty-icon">🔍</span><p>No inventory records found</p></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">
+            <span class="empty-icon">🔍</span><p>No inventory records found</p>
+        </div></td></tr>`;
     } else {
         tbody.innerHTML = page.map(i => {
-            const isLow     = i.quantity <= i.minStock;
-            const pct       = i.minStock > 0 ? Math.min(100, Math.round((i.quantity / (i.minStock * 3)) * 100)) : 100;
-            const barColor  = isLow ? '#ef4444' : i.quantity <= i.minStock * 2 ? '#f59e0b' : '#22c55e';
+            const isLow    = i.quantity <= i.minStock;
+            const pct      = i.minStock > 0
+                ? Math.min(100, Math.round((i.quantity / (i.minStock * 3)) * 100))
+                : 100;
+            const barColor = isLow ? '#ef4444' : i.quantity <= i.minStock * 2 ? '#f59e0b' : '#22c55e';
+            // salePrice is the correct field from the Product entity
+            const price    = Number(i.product?.salePrice || 0).toLocaleString('es-CO');
+
             return `
             <tr>
                 <td>
@@ -157,6 +170,7 @@ function renderTable(items) {
                     </div>
                 </td>
                 <td><span class="min-stock">${i.minStock}</span></td>
+                <td>$ ${price}</td>
                 <td>
                     <span class="badge ${isLow ? 'badge-warn' : 'badge-active'}">
                         ${isLow ? '⚠️ Low' : '✅ OK'}
@@ -179,25 +193,25 @@ function renderTable(items) {
     btns.innerHTML = '';
 
     const btnPrev = document.createElement('button');
-    btnPrev.className = 'btn-page';
+    btnPrev.className   = 'btn-page';
     btnPrev.textContent = '← Previous';
-    btnPrev.disabled = currentPage === 1;
-    btnPrev.onclick = () => { currentPage--; renderTable(items); };
+    btnPrev.disabled    = currentPage === 1;
+    btnPrev.onclick     = () => { currentPage--; renderTable(items); };
     btns.appendChild(btnPrev);
 
-    for (let i = 1; i <= totalPages; i++) {
-        const btn = document.createElement('button');
-        btn.className = `btn-page ${i === currentPage ? 'active' : ''}`;
-        btn.textContent = i;
-        btn.onclick = () => { currentPage = i; renderTable(items); };
+    for (let p = 1; p <= totalPages; p++) {
+        const btn       = document.createElement('button');
+        btn.className   = `btn-page ${p === currentPage ? 'active' : ''}`;
+        btn.textContent = p;
+        btn.onclick     = () => { currentPage = p; renderTable(items); };
         btns.appendChild(btn);
     }
 
     const btnNext = document.createElement('button');
-    btnNext.className = 'btn-page';
+    btnNext.className   = 'btn-page';
     btnNext.textContent = 'Next →';
-    btnNext.disabled = currentPage === totalPages;
-    btnNext.onclick = () => { currentPage++; renderTable(items); };
+    btnNext.disabled    = currentPage === totalPages;
+    btnNext.onclick     = () => { currentPage++; renderTable(items); };
     btns.appendChild(btnNext);
 }
 
@@ -271,8 +285,9 @@ function hideError(id) {
 function showToast(message, type = 'success') {
     const existing = document.getElementById('toast');
     if (existing) existing.remove();
-    const toast = document.createElement('div');
-    toast.id = 'toast'; toast.className = `toast toast-${type}`;
+    const toast       = document.createElement('div');
+    toast.id          = 'toast';
+    toast.className   = `toast toast-${type}`;
     toast.textContent = message;
     document.body.appendChild(toast);
     requestAnimationFrame(() => toast.classList.add('visible'));

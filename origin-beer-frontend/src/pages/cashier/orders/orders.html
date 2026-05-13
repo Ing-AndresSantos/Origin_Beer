@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Origin Beer — Cashier Orders</title>
+    <link rel="stylesheet" href="../../../shared.css">
+    <link rel="stylesheet" href="orders.css">
+            
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar"></aside>
+
+<main class="main">
+    <div class="topbar">
+        <div class="topbar-title">Order Management</div>
+        <div class="topbar-right">
+            <div class="badge-online">Server active</div>
+            <span id="todayDate"></span>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="page-header">
+            <div>
+                <h2>🧾 Orders</h2>
+                <p>Manage and close pending orders</p>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-mini" style="grid-template-columns: repeat(4, 1fr);">
+            <div class="stat-mini">
+                <span class="stat-mini-icon">🧾</span>
+                <div><div class="stat-mini-val" id="statTotal">—</div><div class="stat-mini-label">Total Orders</div></div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">🟡</span>
+                <div><div class="stat-mini-val" id="statOpen">—</div><div class="stat-mini-label">Open</div></div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">✅</span>
+                <div><div class="stat-mini-val" id="statPaid">—</div><div class="stat-mini-label">Paid</div></div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">💰</span>
+                <div><div class="stat-mini-val" id="statRevenue">—</div><div class="stat-mini-label">Today's Revenue</div></div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="toolbar">
+            <div class="search-box">
+                <span>🔍</span>
+                <input type="text" id="search" placeholder="Search by order #, table or waiter..." oninput="filterOrders()">
+            </div>
+            <select class="filter-select" id="filterStatus" onchange="filterOrders()">
+                <option value="">All statuses</option>
+                <option value="OPEN">Open</option>
+                <option value="PAID">Paid</option>
+            </select>
+        </div>
+
+        <div class="result-info" id="resultInfo"></div>
+
+        <!-- Orders Table -->
+        <div class="table-wrapper">
+            <table class="data-table" id="ordersTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Table</th>
+                        <th>Waiter</th>
+                        <th>Status</th>
+                        <th>Opened</th>
+                        <th>Total</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersBody">
+                    <tr><td colspan="7" class="loading-row">⏳ Loading orders...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ORDER DETAIL MODAL                                           -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="detailOverlay">
+    <div class="modal modal-xl">
+        <div class="modal-header">
+            <div>
+                <h3 id="detailTitle">🧾 Order #—</h3>
+                <span class="modal-subtitle" id="detailMeta">—</span>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;">
+                <span id="detailStatusBadge" class="badge"></span>
+                <button class="modal-close" onclick="closeModal('detailOverlay')">✕</button>
+            </div>
+        </div>
+        <div class="modal-body detail-body">
+            <!-- Left: order summary info -->
+            <div class="detail-left">
+                <div class="detail-section-title">📋 Order Summary</div>
+                <div id="orderInfo" class="order-info">
+                    <div class="info-row"><span>Table</span><span id="infoTable">—</span></div>
+                    <div class="info-row"><span>Waiter</span><span id="infoWaiter">—</span></div>
+                    <div class="info-row"><span>Opened</span><span id="infoOpened">—</span></div>
+                    <div class="info-row"><span>Items</span><span id="infoItems">0</span></div>
+                </div>
+            </div>
+            <!-- Right: order lines -->
+            <div class="detail-right">
+                <div class="detail-section-title">🧾 Order Lines</div>
+                <div id="orderLines" class="order-lines">
+                    <div class="empty-state"><span class="empty-icon">🛒</span><p>No items yet</p></div>
+                </div>
+                <div class="order-total-row">
+                    <span>Total</span>
+                    <span id="orderTotal">$ 0.00</span>
+                </div>
+                <div class="loyalty-row" id="loyaltyRow">
+                    <span>🎖️ Loyalty pts</span>
+                    <span id="loyaltyPoints">0</span>
+                </div>
+                <button class="btn-close-order" id="btnCloseOrder">
+                    💳 Close & Pay Order
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- PAYMENT MODAL — US-23, US-24, US-25, US-26                  -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="payModalOverlay" >
+    <div class="modal">
+        <div class="modal-header">
+            <h3>💳 Register Payment</h3>
+            <button class="modal-close" onclick="closeModal('payModalOverlay')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div id="payError" class="modal-error" style="display:none;"></div>
+
+            <!-- Resumen del pedido -->
+            <div class="pay-summary">
+                <div class="pay-summary-row">
+                    <span class="pay-summary-label">Order</span>
+                    <span class="pay-summary-val" id="payOrderId">—</span>
+                </div>
+                <div class="pay-summary-row">
+                    <span class="pay-summary-label">📍 Branch (US-26)</span>
+                    <span class="pay-summary-val" id="payBranch">—</span>
+                </div>
+                <div class="pay-summary-row">
+                    <span class="pay-summary-label">👤 Cashier</span>
+                    <span class="pay-summary-val" id="payCashier">—</span>
+                </div>
+                <div class="pay-summary-row">
+                    <span class="pay-summary-label">💰 Total</span>
+                    <span class="pay-summary-val total" id="payOrderTotal">$ 0</span>
+                </div>
+            </div>
+
+            <!-- Método de pago (US-24) -->
+            <div class="payment-input-group">
+                <label>Payment Method <span class="required">*</span></label>
+                <select id="payMethod" onchange="onPayMethodChange()">
+                    <option value="">— Select payment method —</option>
+                </select>
+            </div>
+
+            <!-- Monto recibido -->
+            <div class="payment-input-group">
+                <label id="payAmountLabel">Amount Received *</label>
+                <input type="number" id="payAmountReceived"
+                       min="0" step="0.01"
+                       placeholder="Amount received from customer"
+                       oninput="onAmountReceivedInput()">
+            </div>
+
+            <!-- Cambio (solo CASH) -->
+            <div class="pay-change-row" id="payChangeRow" style="display:none;">
+                <span>💵 Change to return</span>
+                <span id="payChange" style="font-size:18px;"></span>
+            </div>
+
+            <!-- Notas -->
+            <div class="payment-input-group">
+                <label>Notes <span style="color:var(--text-muted,#888);font-weight:400;">(optional)</span></label>
+                <input type="text" id="payNotes" placeholder="Additional notes for the invoice…" maxlength="200">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeModal('payModalOverlay')">Cancel</button>
+            <button class="btn-pay" id="btnSubmitPayment" onclick="submitPayment()">✅ Confirm Payment</button>
+        </div>
+    </div>
+</div>
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- INVOICE MODAL — US-25 Factura interna                        -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="invoiceModalOverlay">
+    <div class="modal invoice-modal">
+        <div class="modal-header">
+            <h3>🧾 Invoice Generated</h3>
+            <button class="modal-close" onclick="closeModal('invoiceModalOverlay')">✕</button>
+        </div>
+        <div class="modal-body">
+            <div id="invoiceContent"></div>
+            <button class="invoice-print-btn" onclick="printInvoice()">🖨️ Print Invoice</button>
+        </div>
+    </div>
+</div>
+
+
+<script src="../../../shared.js"></script>
+<script src="../../../shared.html"></script>
+<script src="../../../shared.js"></script>
+<script src="orders.js"></script>
+</body>
+</html>

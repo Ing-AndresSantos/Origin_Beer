@@ -55,7 +55,6 @@ async function loadProducts() {
 }
 
 function populateBranchSelects() {
-    // Filter bar
     const filterSel = document.getElementById('filterBranch');
     filterSel.innerHTML = '<option value="">All branches</option>';
     allBranches.filter(b => b.active).forEach(b => {
@@ -65,7 +64,6 @@ function populateBranchSelects() {
         filterSel.appendChild(opt);
     });
 
-    // Add modal
     const addSel = document.getElementById('aBranch');
     addSel.innerHTML = '<option value="">— Select a branch —</option>';
     allBranches.filter(b => b.active).forEach(b => {
@@ -97,6 +95,18 @@ function updateStats() {
     document.getElementById('statBranches').textContent   = branches;
     document.getElementById('statLowStock').textContent   = lowStock;
     document.getElementById('statProducts').textContent   = products;
+}
+
+// ── AUTO-ID PREVIEW ───────────────────────────────────────────
+// En inventory, el ID de registro (id_product_branch) se genera
+// automáticamente. Se muestra en el modal de edición como solo lectura.
+
+function showInventoryIdPreview(idProductBranch) {
+    const el = document.getElementById('sRecordId');
+    if (!el) return;
+    el.value = idProductBranch
+        ? String(idProductBranch).padStart(3, '0')
+        : '— (auto)';
 }
 
 // ── FILTER ────────────────────────────────────────────────────
@@ -133,9 +143,10 @@ function renderTable(items) {
         tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="empty-icon">🔍</span><p>No inventory records found</p></div></td></tr>`;
     } else {
         tbody.innerHTML = page.map(i => {
-            const isLow     = i.quantity <= i.minStock;
-            const pct       = i.minStock > 0 ? Math.min(100, Math.round((i.quantity / (i.minStock * 3)) * 100)) : 100;
-            const barColor  = isLow ? '#ef4444' : i.quantity <= i.minStock * 2 ? '#f59e0b' : '#22c55e';
+            const isLow      = i.quantity <= i.minStock;
+            const pct        = i.minStock > 0 ? Math.min(100, Math.round((i.quantity / (i.minStock * 3)) * 100)) : 100;
+            const barColor   = isLow ? '#ef4444' : i.quantity <= i.minStock * 2 ? '#f59e0b' : '#22c55e';
+            const idFormatted = String(i.idProductBranch || '—').padStart ? String(i.idProductBranch || 0).padStart(3, '0') : '—';
             return `
             <tr>
                 <td>
@@ -143,7 +154,7 @@ function renderTable(items) {
                         <div class="inv-icon">📦</div>
                         <div>
                             <div class="inv-name">${i.product?.name || '—'}</div>
-                            <div class="inv-code">${i.product?.code || '—'}</div>
+                            <div class="inv-code">${i.product?.code || '—'} <span style="font-size:10px;color:var(--text-muted)">· Rec.ID: ${idFormatted}</span></div>
                         </div>
                     </div>
                 </td>
@@ -168,7 +179,7 @@ function renderTable(items) {
                 </td>
                 <td class="actions-td">
                     <button class="action-btn edit-btn" title="Update stock"
-                            onclick="openStockModal(${i.product?.idProduct}, ${i.branch?.idBranch}, '${esc(i.product?.name)}', '${esc(i.branch?.name)}', ${i.quantity}, ${i.minStock})">
+                            onclick="openStockModal(${i.product?.idProduct}, ${i.branch?.idBranch}, '${esc(i.product?.name)}', '${esc(i.branch?.name)}', ${i.quantity}, ${i.minStock}, ${i.idProductBranch || 0})">
                         ✏️
                     </button>
                 </td>
@@ -208,7 +219,7 @@ function renderTable(items) {
 function esc(str) { return (str || '').replace(/'/g, "\\'"); }
 
 // ── STOCK MODAL ───────────────────────────────────────────────
-function openStockModal(idProduct, idBranch, productName, branchName, qty, minStock) {
+function openStockModal(idProduct, idBranch, productName, branchName, qty, minStock, idProductBranch) {
     editingIdProduct = idProduct;
     editingIdBranch  = idBranch;
     document.getElementById('stockModalSub').textContent = `${productName} · ${branchName}`;
@@ -220,6 +231,8 @@ function openStockModal(idProduct, idBranch, productName, branchName, qty, minSt
         </div>`;
     document.getElementById('sQuantity').value = qty;
     document.getElementById('sMinStock').value = minStock;
+    // Mostrar ID del registro como solo lectura
+    showInventoryIdPreview(idProductBranch);
     hideError('stockError');
     document.getElementById('stockModalOverlay').classList.add('active');
 }
@@ -263,8 +276,8 @@ async function saveStock() {
 
 // ── ADD TO BRANCH MODAL ───────────────────────────────────────
 function openAddModal() {
-    document.getElementById('aBranch').value  = '';
-    document.getElementById('aProduct').value = '';
+    document.getElementById('aBranch').value   = '';
+    document.getElementById('aProduct').value  = '';
     document.getElementById('aQuantity').value = '0';
     document.getElementById('aMinStock').value = '5';
     hideError('addError');
@@ -283,9 +296,20 @@ async function saveAdd() {
     const minStock  = parseInt(document.getElementById('aMinStock').value) || 5;
     const user      = getUser();
 
-    if (!idBranch)  { showError('addError', 'Please select a branch.'); return; }
-    if (!idProduct) { showError('addError', 'Please select a product.'); return; }
+    if (!idBranch)     { showError('addError', 'Please select a branch.'); return; }
+    if (!idProduct)    { showError('addError', 'Please select a product.'); return; }
     if (!user?.idUser) { showError('addError', 'Session error. Please log in again.'); return; }
+
+    // Verificar que la combinación producto-sucursal no exista ya
+    const existing = allInventory.find(
+        i => i.product?.idProduct === idProduct && i.branch?.idBranch === idBranch
+    );
+    if (existing) {
+        showError('addError',
+            `This product is already tracked in that branch (Record ID: ${String(existing.idProductBranch).padStart(3,'0')}). Use the ✏️ edit button to update its stock instead.`
+        );
+        return;
+    }
 
     const btn = document.getElementById('btnSaveAdd');
     btn.disabled = true; btn.textContent = 'Saving...';
