@@ -1,1 +1,120 @@
-print("Hola Mundo")
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Origin Beer — Cashier Reports</title>
+    <link rel="stylesheet" href="../../../shared.css">
+    <link rel="stylesheet" href="reports.css">
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar"></aside>
+
+<main class="main">
+    <div class="topbar">
+        <div class="topbar-title">📊 Cashier Reports</div>
+        <div class="topbar-right">
+            <div class="badge-online">Server active</div>
+            <span id="todayDate"></span>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="page-header">
+            <div>
+                <h2>📊 Cashier Reports</h2>
+                <p><span id="branchNameHeader">Loading branch...</span> — Sales and inventory reports</p>
+            </div>
+            <div class="header-buttons">
+                <button class="btn-new" onclick="exportReport()">📄 CSV</button>
+                <button class="btn-new" onclick="exportPDF()">📕 PDF</button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-mini">
+            <div class="stat-mini">
+                <span class="stat-mini-icon">💵</span>
+                <div><div class="stat-mini-val" id="statTotalSales">—</div><div class="stat-mini-label">Total Sales</div></div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">📦</span>
+                <div><div class="stat-mini-val" id="statInventoryItems">—</div><div class="stat-mini-label">Inventory Items</div></div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">🛒</span>
+                <div><div class="stat-mini-val" id="statTotalOrders">—</div><div class="stat-mini-label">Total Orders</div></div>
+            </div>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div class="search-box">
+                <span>🔍</span>
+                <input type="text" id="search" placeholder="Search reports..." oninput="filter()">
+            </div>
+            <select class="filter-select" id="filterType" onchange="filter()">
+                <option value="">All types</option>
+                <option value="sales">💵 Sales</option>
+                <option value="inventory">📦 Inventory</option>
+            </select>
+            <div class="date-range-filter">
+                <label for="filterDateFrom">From:</label>
+                <input type="date" class="filter-date-input" id="filterDateFrom" onchange="validateDateRange()">
+                <label for="filterDateTo">To:</label>
+                <input type="date" class="filter-date-input" id="filterDateTo" onchange="validateDateRange()">
+            </div>
+        </div>
+
+        <div class="result-info" id="resultInfo"></div>
+
+        <!-- Table -->
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Report Type</th>
+                        <th>Date</th>
+                        <th>Orders</th>
+                        <th>Amount</th>
+                        <th>Items</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="reportsTable">
+                    <tr><td colspan="6"><div class="empty-state"><span class="empty-icon">⏳</span><p>Loading reports...</p></div></td></tr>
+                </tbody>
+            </table>
+            <div class="pagination">
+                <span id="pageInfo">Loading...</span>
+                <div class="pagination-btns" id="pageBtns"></div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- ── REPORT DETAILS MODAL ────────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="detailsModalOverlay" onclick="closeDetailsModal(event)">
+    <div class="modal" onclick="event.stopPropagation()">
+        <div class="modal-header">
+            <h3>Report Details</h3>
+            <button class="modal-close" onclick="closeDetailsModal()">✕</button>
+        </div>
+        <div class="modal-body" id="detailsContent">
+            <!-- Report details will be loaded here -->
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="closeDetailsModal()">Close</button>
+            <button class="btn-primary" onclick="printReport()">🖨️ Print</button>
+        </div>
+    </div>
+</div>
+
+<script src="../../../shared.js"></script>
+<script src="../../../shared.html"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="reports.js"></script>
+</body>
+</html>

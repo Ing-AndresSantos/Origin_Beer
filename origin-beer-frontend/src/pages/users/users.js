@@ -10,31 +10,6 @@ let userBranchMap  = {};   // { userId: [{idBranch, name, code}] }
 let currentPage    = 1;
 const PER_PAGE  = 10;
 
-// ══════════════════════════════════════════════════════════════
-// PHONE VALIDATION — Solo dígitos, exactamente 10
-// ══════════════════════════════════════════════════════════════
-
-/**
- * Valida que el teléfono tenga exactamente 10 dígitos numéricos.
- * Retorna null si es válido (o vacío), o un string con el error.
- */
-function validatePhone(value) {
-    if (!value || value.trim() === '') return null; // campo opcional
-    const digits = value.replace(/\D/g, '');
-    if (value.trim() !== digits) return 'Phone number must contain only digits (no letters or special characters).';
-    if (digits.length !== 10)   return 'Phone number must have exactly 10 digits.';
-    return null;
-}
-
-/**
- * Permite solo dígitos en un campo de teléfono mientras el usuario escribe.
- * Uso: oninput="enforcePhoneInput(this)"
- */
-function enforcePhoneInput(input) {
-    const clean = input.value.replace(/\D/g, '').slice(0, 10);
-    input.value = clean;
-}
-
 // ── LOAD ─────────────────────────────────────────────────────
 
 async function loadUsers() {
@@ -87,6 +62,7 @@ async function loadBranchAssignments() {
             } catch (e) { /* skip failed branch */ }
         }));
 
+        // Re-render table with branch data
         filter();
     } catch (e) { console.error('Could not load branch assignments', e); }
 }
@@ -115,22 +91,6 @@ function updateStats() {
     document.getElementById('totalActive').textContent   = active;
     document.getElementById('totalInactive').textContent = inactive;
     document.getElementById('totalAdmins').textContent   = admins;
-}
-
-// ── AUTO-ID PREVIEW ───────────────────────────────────────────
-// Muestra el próximo ID que se asignará (último ID + 1).
-// El campo es solo lectura; el backend genera el ID real.
-
-function updateNextIdPreview() {
-    const el = document.getElementById('f-nextId');
-    if (!el) return;
-    if (!allUsers.length) {
-        el.value = '001';
-        return;
-    }
-    const maxId  = Math.max(...allUsers.map(u => u.idUser || 0));
-    const nextId = maxId + 1;
-    el.value = String(nextId).padStart(3, '0');
 }
 
 // ── FILTER ────────────────────────────────────────────────────
@@ -173,8 +133,6 @@ function renderTable(users) {
             const roleClass = roleName.toLowerCase();
             const lastAccess = u.lastAccess ? new Date(u.lastAccess).toLocaleString('en-US') : 'Never';
             const created    = u.createdAt  ? new Date(u.createdAt).toLocaleDateString('en-US') : '—';
-            // ID formateado como 3 dígitos con cero a la izquierda
-            const idFormatted = String(u.idUser).padStart(3, '0');
             return `
             <tr>
                 <td>
@@ -183,7 +141,6 @@ function renderTable(users) {
                         <div>
                             <div class="name">${u.firstName} ${u.lastName}</div>
                             <div class="email">${u.email}</div>
-                            <div style="font-size:11px;color:var(--text-muted)">ID: ${idFormatted}</div>
                         </div>
                     </div>
                 </td>
@@ -264,7 +221,7 @@ function renderBranches(userId) {
 // ── TOGGLE STATUS ─────────────────────────────────────────────
 
 async function handleToggleStatus(userId, checkbox) {
-    const originalState = !checkbox.checked;
+    const originalState = !checkbox.checked; // revert on error
     try {
         const res = await fetch(`${API}/api/users/${userId}/status`, {
             method: 'PATCH',
@@ -278,11 +235,12 @@ async function handleToggleStatus(userId, checkbox) {
                 label.textContent = isActive ? 'Active' : 'Inactive';
                 label.className = `toggle-label ${isActive ? '' : 'inactive'}`;
             }
+            // Update local array so stats are correct
             const u = allUsers.find(u => u.idUser === userId);
             if (u) u.active = isActive;
             updateStats();
         } else {
-            checkbox.checked = originalState;
+            checkbox.checked = originalState; // revert
             showToast('Could not update status. Try again.', 'error');
         }
     } catch (e) {
@@ -409,7 +367,6 @@ async function savePassword() {
 
 function openNewUserModal() {
     clearNewUserForm();
-    updateNextIdPreview();   // ← muestra el próximo ID automático
     document.getElementById('modalOverlay').classList.add('open');
 }
 
@@ -422,9 +379,6 @@ function clearNewUserForm() {
         document.getElementById(id).value = '';
     });
     document.getElementById('f-role').value = '';
-    // Limpiar también el preview de ID
-    const nextIdEl = document.getElementById('f-nextId');
-    if (nextIdEl) nextIdEl.value = '—';
     hideModalError('formError');
     const btn = document.getElementById('btnSave');
     btn.disabled = false; btn.textContent = 'Create User';
@@ -444,15 +398,10 @@ async function saveUser() {
     const phone     = document.getElementById('f-phone').value.trim();
     const idRole    = parseInt(document.getElementById('f-role').value);
 
-    // ── Validaciones básicas ──────────────────────────────────
     if (!firstName || !lastName)  { showModalError('formError', 'First and last name are required.');   return; }
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showModalError('formError', 'Enter a valid email address.'); return; }
     if (!password || password.length < 8) { showModalError('formError', 'Password must be at least 8 characters.'); return; }
     if (!idRole)                  { showModalError('formError', 'Please select a role.');               return; }
-
-    // ── Validación de teléfono (10 dígitos) ───────────────────
-    const phoneErr = validatePhone(phone);
-    if (phoneErr) { showModalError('formError', phoneErr); return; }
 
     const btn = document.getElementById('btnSave');
     btn.disabled = true; btn.textContent = 'Saving...';
@@ -464,7 +413,7 @@ async function saveUser() {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${getToken()}`
             },
-            body: JSON.stringify({ firstName, lastName, email, password, phone: phone || null, idRole })
+            body: JSON.stringify({ firstName, lastName, email, password, phone, idRole })
         });
 
         if (res.status === 201) {

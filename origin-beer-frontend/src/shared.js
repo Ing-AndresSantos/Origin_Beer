@@ -198,7 +198,6 @@ function getSidebarNav(base = '../') {
         <div class="nav-section">Operations</div>
         <a class="nav-item" href="${base}orders/orders.html"><span class="nav-icon">🧾</span> Orders</a>
         <a class="nav-item" href="${base}tables/tables.html"><span class="nav-icon">🪑</span> Tables</a>
-        <a class="nav-item" href="${base}sales/sales.html"><span class="nav-icon">💳</span> Sales</a>
         <div class="nav-section">Analytics</div>
         <a class="nav-item" href="${base}reports/reports.html"><span class="nav-icon">📈</span> Reports</a>
     </nav>
@@ -213,7 +212,7 @@ function getSidebarNav(base = '../') {
 function getCashierSidebar(base = '../') {
     return `
     <div class="sidebar-logo">
-        <span>🍺</span>
+        <img src="${base}../logo/logo origeen beer.png" alt="Origin Beer" class="logo-icon">
         <div><h2>Origin Beer</h2><p>Cashier Station</p></div>
     </div>
 
@@ -224,9 +223,7 @@ function getCashierSidebar(base = '../') {
     </div>
     <nav class="sidebar-nav">
         <div class="nav-section">Main</div>
-        <a class="nav-item" href="${base}dashboard/dashboard.html"><span class="nav-icon">💳</span> Dashboard</a>
         <div class="nav-section">Operations</div>
-        <a class="nav-item" href="${base}sales/sales.html"><span class="nav-icon">💳</span> Sales</a>
         <a class="nav-item" href="${base}orders/orders.html"><span class="nav-icon">🧾</span> Orders</a>
         <a class="nav-item" href="${base}tables/tables.html"><span class="nav-icon">🪑</span> Tables</a>
         <div class="nav-section">Inventory</div>
@@ -248,7 +245,7 @@ function getCashierSidebar(base = '../') {
 function getWaiterSidebar(base = '../') {
     return `
     <div class="sidebar-logo">
-        <img src="../Logo/logo origeen beer.png" alt="Origin Beer" class="logo-icon">
+        <img src="${base}../logo/logo origeen beer.png" alt="Origin Beer" class="logo-icon">
         <div><h2>Origin Beer</h2><p>Waiter Station</p></div>
     </div>
     <div class="sidebar-user">

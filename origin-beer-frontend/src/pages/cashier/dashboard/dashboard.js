@@ -96,7 +96,6 @@ async function loadTables() {
 
 // ── LOAD INVOICES ─────────────────────────────────────────────
 async function loadInvoices() {
-    // The report_sales_cashier view is available via /api/reports/sales
     // but there is no dedicated invoices endpoint yet.
     // We derive invoice count from today's PAID orders for this branch.
     if (!userBranchId) return;
@@ -122,7 +121,6 @@ async function loadInvoices() {
         : todayInvoices.slice(0, 8).map(o => `
             <div class="list-item">
                 <div class="list-item-left">
-                    <div class="list-avatar">💳</div>
                     <div>
                         <div class="list-name">Order #${o.idOrder}</div>
                         <div class="list-sub">${o.closedAt ? new Date(o.closedAt).toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit' }) : '—'}</div>
@@ -145,9 +143,6 @@ document.getElementById('btnCloseOrders')?.addEventListener('click', () => {
     window.location.href = '../orders/orders.html';
 });
 
-document.getElementById('btnSales')?.addEventListener('click', () => {
-    window.location.href = '../sales/sales.html';
-});
 
 document.getElementById('btnInventory')?.addEventListener('click', () => {
     window.location.href = '../inventory/inventory.html';
