@@ -6,6 +6,52 @@
     <title>Origin Beer — Cashier Reports</title>
     <link rel="stylesheet" href="../../../shared.css">
     <link rel="stylesheet" href="reports.css">
+    <style>
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .kpi-card { background: var(--bg-card, #1e1e2e); border: 1px solid var(--border, #2a2a3a); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 5px; transition: transform .15s; }
+        .kpi-card:hover { transform: translateY(-2px); }
+        .kpi-card.accent { border-color: rgba(245,158,11,.4); background: rgba(245,158,11,.06); }
+        .kpi-card.green  { border-color: rgba(16,185,129,.4); background: rgba(16,185,129,.06); }
+        .kpi-icon  { font-size: 20px; }
+        .kpi-label { font-size: 10px; color: var(--text-muted, #888); text-transform: uppercase; letter-spacing: .5px; }
+        .kpi-value { font-size: 18px; font-weight: 700; color: var(--text-main, #eee); }
+
+        .filter-bar { background: var(--bg-card, #1e1e2e); border: 1px solid var(--border, #2a2a3a); border-radius: 12px; padding: 12px 16px; margin-bottom: 18px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        .filter-bar label { font-size: 11px; color: var(--text-muted, #888); }
+        .filter-bar input[type="date"] { background: var(--bg-main, #111); border: 1px solid var(--border, #333); border-radius: 8px; color: var(--text-main, #eee); padding: 6px 10px; font-size: 13px; }
+        .preset-btn { background: var(--bg-row, #252535); border: 1px solid var(--border, #333); border-radius: 20px; color: var(--text-muted, #888); padding: 5px 12px; font-size: 11px; cursor: pointer; }
+        .preset-btn.active, .preset-btn:hover { background: #f59e0b; color: #000; border-color: #f59e0b; font-weight: 600; }
+        .btn-apply { background: #f59e0b; color: #000; border: none; border-radius: 8px; padding: 7px 16px; font-weight: 700; cursor: pointer; font-size: 13px; }
+
+        .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
+        .chart-card { background: var(--bg-card, #1e1e2e); border: 1px solid var(--border, #2a2a3a); border-radius: 12px; padding: 16px; }
+        .chart-title { font-size: 13px; font-weight: 700; color: var(--text-main, #eee); margin-bottom: 12px; }
+        .chart-wrap { height: 200px; position: relative; }
+
+        .heatmap-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; margin-top: 6px; }
+        .heatmap-cell { border-radius: 4px; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
+        .heatmap-hour { font-size: 9px; color: rgba(255,255,255,.5); }
+
+        .table-section { background: var(--bg-card, #1e1e2e); border: 1px solid var(--border, #2a2a3a); border-radius: 12px; overflow: hidden; }
+        .table-header-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border, #2a2a3a); flex-wrap: wrap; gap: 10px; }
+        .table-header-row h3 { font-size: 14px; font-weight: 700; margin: 0; }
+        .table-toolbar { display: flex; gap: 10px; padding: 10px 18px; border-bottom: 1px solid var(--border, #2a2a3a); }
+        .data-table th { background: var(--bg-row, #252535); font-size: 11px; text-transform: uppercase; color: var(--text-muted, #888); padding: 10px 12px; }
+        .data-table td { font-size: 12px; padding: 9px 12px; border-bottom: 1px solid var(--border, #2a2a3a); vertical-align: middle; }
+        .data-table tr:hover td { background: var(--bg-row, #252535); }
+        .pagination-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 18px; }
+        .pagination-row span { font-size: 12px; color: var(--text-muted, #888); }
+        #pageBtns button { background: var(--bg-row, #252535); border: 1px solid var(--border, #333); border-radius: 6px; color: var(--text-main, #eee); padding: 4px 9px; margin: 0 2px; cursor: pointer; font-size: 11px; }
+        #pageBtns button.active { background: #f59e0b; color: #000; border-color: #f59e0b; font-weight: 700; }
+        #pageBtns button:disabled { opacity: .4; cursor: default; }
+        .btn-export { background: var(--bg-row, #252535); border: 1px solid var(--border, #333); border-radius: 8px; color: var(--text-main, #eee); padding: 6px 12px; font-size: 12px; cursor: pointer; }
+        .btn-export:hover { background: #f59e0b; color: #000; border-color: #f59e0b; }
+
+        @media (max-width: 800px) {
+            .charts-grid { grid-template-columns: 1fr; }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
 </head>
 <body>
 
@@ -13,9 +59,9 @@
 
 <main class="main">
     <div class="topbar">
-        <div class="topbar-title">📊 Cashier Reports</div>
+        <div class="topbar-title">📊 My Reports</div>
         <div class="topbar-right">
-            <div class="badge-online">Server active</div>
+            <div class="badge-online">Live</div>
             <span id="todayDate"></span>
         </div>
     </div>
@@ -23,96 +69,141 @@
     <div class="content">
         <div class="page-header">
             <div>
-                <h2>📊 Cashier Reports</h2>
-                <p><span id="branchNameHeader">Loading branch...</span> — Sales and inventory reports</p>
+                <h2>📊 Sales Report</h2>
+                <p>Branch: <strong id="branchBadge">—</strong></p>
             </div>
-            <div class="header-buttons">
-                <button class="btn-new" onclick="exportReport()">📄 CSV</button>
-                <button class="btn-new" onclick="exportPDF()">📕 PDF</button>
-            </div>
-        </div>
-
-        <!-- Stats -->
-        <div class="stats-mini">
-            <div class="stat-mini">
-                <span class="stat-mini-icon">💵</span>
-                <div><div class="stat-mini-val" id="statTotalSales">—</div><div class="stat-mini-label">Total Sales</div></div>
-            </div>
-            <div class="stat-mini">
-                <span class="stat-mini-icon">📦</span>
-                <div><div class="stat-mini-val" id="statInventoryItems">—</div><div class="stat-mini-label">Inventory Items</div></div>
-            </div>
-            <div class="stat-mini">
-                <span class="stat-mini-icon">🛒</span>
-                <div><div class="stat-mini-val" id="statTotalOrders">—</div><div class="stat-mini-label">Total Orders</div></div>
+            <div style="display:flex;gap:8px;">
+                <button class="btn-export" onclick="exportCSV()">📄 CSV</button>
+                <button class="btn-export" onclick="exportPDF()" style="background:#ef4444;color:#fff;border-color:#ef4444;">📕 PDF</button>
             </div>
         </div>
 
-        <!-- Toolbar -->
-        <div class="toolbar">
-            <div class="search-box">
-                <span>🔍</span>
-                <input type="text" id="search" placeholder="Search reports..." oninput="filter()">
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <button class="preset-btn" onclick="setPreset('today')">Today</button>
+            <button class="preset-btn" onclick="setPreset('week')">7 days</button>
+            <button class="preset-btn active" onclick="setPreset('month')">This month</button>
+            <label>From</label>
+            <input type="date" id="filterFrom">
+            <label>To</label>
+            <input type="date" id="filterTo">
+            <button class="btn-apply" onclick="load()">Apply</button>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card accent">
+                <span class="kpi-icon">💰</span>
+                <span class="kpi-label">Total Sales</span>
+                <span class="kpi-value" id="kpiTotalSale">—</span>
             </div>
-            <select class="filter-select" id="filterType" onchange="filter()">
-                <option value="">All types</option>
-                <option value="sales">💵 Sales</option>
-                <option value="inventory">📦 Inventory</option>
-            </select>
-            <div class="date-range-filter">
-                <label for="filterDateFrom">From:</label>
-                <input type="date" class="filter-date-input" id="filterDateFrom" onchange="validateDateRange()">
-                <label for="filterDateTo">To:</label>
-                <input type="date" class="filter-date-input" id="filterDateTo" onchange="validateDateRange()">
+            <div class="kpi-card green">
+                <span class="kpi-icon">📈</span>
+                <span class="kpi-label">Total Profit</span>
+                <span class="kpi-value" id="kpiTotalProfit">—</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon">%</span>
+                <span class="kpi-label">Margin</span>
+                <span class="kpi-value" id="kpiMargin">—</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon">📦</span>
+                <span class="kpi-label">Units Sold</span>
+                <span class="kpi-value" id="kpiQty">—</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon">🧾</span>
+                <span class="kpi-label">Invoices</span>
+                <span class="kpi-value" id="kpiInvoices">—</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon">🎯</span>
+                <span class="kpi-label">Avg Ticket</span>
+                <span class="kpi-value" id="kpiAvgTicket">—</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon">⭐</span>
+                <span class="kpi-label">Top Product</span>
+                <span class="kpi-value" style="font-size:12px;" id="kpiTopProduct">—</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon">💳</span>
+                <span class="kpi-label">Top Payment</span>
+                <span class="kpi-value" style="font-size:12px;" id="kpiTopPayment">—</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon">🕐</span>
+                <span class="kpi-label">Peak Hour</span>
+                <span class="kpi-value" id="kpiPeakHour">—</span>
             </div>
         </div>
 
-        <div class="result-info" id="resultInfo"></div>
+        <!-- Charts Row 1 -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-title">📅 Daily Sales</div>
+                <div class="chart-wrap"><canvas id="chartDaily"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">💳 Payment Methods</div>
+                <div class="chart-wrap"><canvas id="chartPayment"></canvas></div>
+            </div>
+        </div>
 
-        <!-- Table -->
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Report Type</th>
-                        <th>Date</th>
-                        <th>Orders</th>
-                        <th>Amount</th>
-                        <th>Items</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody id="reportsTable">
-                    <tr><td colspan="6"><div class="empty-state"><span class="empty-icon">⏳</span><p>Loading reports...</p></div></td></tr>
-                </tbody>
-            </table>
-            <div class="pagination">
-                <span id="pageInfo">Loading...</span>
-                <div class="pagination-btns" id="pageBtns"></div>
+        <!-- Charts Row 2 -->
+        <div class="chart-card" style="margin-bottom:20px;">
+            <div class="chart-title">🏆 Top Products by Units</div>
+            <div class="chart-wrap"><canvas id="chartProducts"></canvas></div>
+        </div>
+
+        <!-- Heatmap -->
+        <div class="chart-card" style="margin-bottom:20px;">
+            <div class="chart-title">🔥 Hourly Activity</div>
+            <div id="heatmapGrid" class="heatmap-grid"></div>
+        </div>
+
+        <!-- Table RF-27, RF-28 -->
+        <div class="table-section">
+            <div class="table-header-row">
+                <h3>🗃️ Product Sales Detail</h3>
+                <span style="font-size:11px;color:#6b7280" id="pageInfo">—</span>
+            </div>
+            <div class="table-toolbar">
+                <div class="search-box" style="flex:1">
+                    <span>🔍</span>
+                    <input type="text" id="search" placeholder="Search by product or cashier…" oninput="applyFilter()">
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Close Date</th>
+                            <th>Code</th>
+                            <th>Product</th>
+                            <th>Qty</th>
+                            <th>Unit Cost</th>
+                            <th>Sale Total</th>
+                            <th>Cost Total</th>
+                            <th>Profit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportsTable">
+                        <tr><td colspan="8"><div class="empty-state"><span class="empty-icon">⏳</span><p>Loading…</p></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination-row">
+                <span id="resultInfo"></span>
+                <div id="pageBtns"></div>
             </div>
         </div>
     </div>
 </main>
 
-<!-- ── REPORT DETAILS MODAL ────────────────────────────────────────────────────────── -->
-<div class="modal-overlay" id="detailsModalOverlay" onclick="closeDetailsModal(event)">
-    <div class="modal" onclick="event.stopPropagation()">
-        <div class="modal-header">
-            <h3>Report Details</h3>
-            <button class="modal-close" onclick="closeDetailsModal()">✕</button>
-        </div>
-        <div class="modal-body" id="detailsContent">
-            <!-- Report details will be loaded here -->
-        </div>
-        <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeDetailsModal()">Close</button>
-            <button class="btn-primary" onclick="printReport()">🖨️ Print</button>
-        </div>
-    </div>
-</div>
-
 <script src="../../../shared.js"></script>
-<script src="../../../shared.html"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <script src="reports.js"></script>

@@ -16,6 +16,16 @@ CREATE DATABASE IF NOT EXISTS origin_beer
 
 USE origin_beer;
 
+SELECT pb.id_product_branch, p.name, p.sale_price, pb.quantity
+FROM product_branch pb
+JOIN product p ON p.id_product = pb.id_product
+WHERE pb.id_branch = 1;  -- cambia por tu id_branch
+
+select*
+From branch;
+
+delete from branch where id_branch IN (4,5,6);
+
 -- =============================================================================
 -- SPRINT 2 — SECURITY AND USER MANAGEMENT
 -- US-04, US-05, US-06, US-07, US-08
