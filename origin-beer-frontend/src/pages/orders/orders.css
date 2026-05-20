@@ -150,6 +150,24 @@
 .detail-left  { border-right: 1px solid #222; }
 .detail-section-title { font-size: 11px; color: #666; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
 
+.btn-invoice {
+    background: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+.btn-invoice:hover {
+    background: #6366f1;
+    color: #fff;
+}
+.btn-invoice {
+    background: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+}
+.btn-invoice:hover {
+    background: #6366f1;
+    color: #fff;
+}
 /* ── SUGGEST BAR (Knapsack) ─────────────────────────────────── */
 .suggest-bar {
     display: flex;

@@ -22,9 +22,9 @@ JOIN product p ON p.id_product = pb.id_product
 WHERE pb.id_branch = 1;  -- cambia por tu id_branch
 
 select*
-From branch;
+From user;
 
-delete from branch where id_branch IN (4,5,6);
+delete from user where id_user IN (11);
 
 -- =============================================================================
 -- SPRINT 2 — SECURITY AND USER MANAGEMENT

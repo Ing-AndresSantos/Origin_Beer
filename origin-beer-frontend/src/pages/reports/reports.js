@@ -293,16 +293,18 @@ function prevPage() { changePage(currentPage-1); }
 function nextPage() { changePage(currentPage+1); }
 
 // ══════════════════════════════════════════════════════════════
-// EXPORT EXCEL PROFESIONAL — SheetJS (100% frontend, sin backend)
-// Botón: "📊 Excel" → llama exportReport()
-// Genera 5 hojas: Cover · Sales Detail · Executive Summary ·
-//                 Pivot Summary · Notes
+// EXPORT EXCEL PROFESIONAL — xlsx-js-style
+// Librería: https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js
+// (fork de SheetJS que SÍ aplica estilos: colores, bordes, fuentes)
+// Botón "📊 Excel" → llama exportReport()
+// 5 hojas: Cover · Sales Detail · Executive Summary · Pivot · Notes
 // ══════════════════════════════════════════════════════════════
 function exportReport() {
     if (!filteredRows.length) { alert('No data to export.'); return; }
 
+    // xlsx-js-style expone window.XLSX igual que SheetJS pero CON soporte de estilos
     const XLSX = window.XLSX;
-    if (!XLSX) { alert('SheetJS not loaded. Check your internet connection.'); return; }
+    if (!XLSX) { alert('xlsx-js-style no cargado. Verifica tu conexión.'); return; }
 
     const wb  = XLSX.utils.book_new();
     const s   = reportData.summary || {};
@@ -536,64 +538,296 @@ function exportReport() {
 // ══════════════════════════════════════════════════════════════
 // EXPORT PDF
 // ══════════════════════════════════════════════════════════════
-function exportPDF() {
+// ══════════════════════════════════════════════════════════════
+// EXPORT PDF PROFESIONAL
+// Incluye: Portada · KPIs · Gráficas (canvas→imagen) · Tabla RF-28
+// ══════════════════════════════════════════════════════════════
+async function exportPDF() {
     if (!filteredRows.length) { alert('No data to export.'); return; }
+
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation:'landscape' });
+    const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
+    const PW  = 297; // page width mm
+    const PH  = 210; // page height mm
     const s   = reportData.summary || {};
     const u   = (typeof getUser==='function') ? getUser() : {};
 
-    doc.setFillColor(17,24,39); doc.rect(0,0,297,210,'F');
-    doc.setFontSize(28); doc.setTextColor(245,158,11);
-    doc.text('🍺 Origin Beer', 148, 55, {align:'center'});
-    doc.setFontSize(16); doc.setTextColor(229,231,235);
-    doc.text('Sales Report — Admin Dashboard', 148, 70, {align:'center'});
-    doc.setFontSize(11); doc.setTextColor(156,163,175);
-    doc.text(`Generated: ${new Date().toLocaleString('es-CO')}`, 148, 82, {align:'center'});
-    doc.text(`User: ${u.firstName||''} ${u.lastName||''}  |  ADMIN`, 148, 90, {align:'center'});
+    // ── Helpers ──────────────────────────────────────────────
+    function bg(r,g,b)  { doc.setFillColor(r,g,b); }
+    function fg(r,g,b)  { doc.setTextColor(r,g,b); }
+    function pdfHeader(pageNum, totalPages) {
+        // top bar
+        bg(17,24,39); doc.rect(0,0,PW,12,'F');
+        fg(245,158,11); doc.setFontSize(9); doc.setFont('helvetica','bold');
+        doc.text('ORIGIN BEER  |  Sales Report', 8, 8);
+        fg(107,114,128); doc.setFont('helvetica','normal');
+        doc.text(`Page ${pageNum} of ${totalPages}`, PW-8, 8, {align:'right'});
+    }
+    function pdfFooter() {
+        bg(17,24,39); doc.rect(0,PH-10,PW,10,'F');
+        fg(107,114,128); doc.setFontSize(7);
+        doc.text('CONFIDENTIAL — Internal Use Only — Origin Beer Analytics Platform', PW/2, PH-4, {align:'center'});
+    }
+    function kpiBox(x,y,w,h,label,value,r,g,b) {
+        bg(31,41,55); doc.roundedRect(x,y,w,h,2,2,'F');
+        // left accent bar
+        doc.setFillColor(r,g,b); doc.rect(x,y,2,h,'F');
+        fg(107,114,128); doc.setFontSize(7); doc.setFont('helvetica','normal');
+        doc.text(label.toUpperCase(), x+5, y+6);
+        doc.setFontSize(13); doc.setFont('helvetica','bold');
+        doc.setTextColor(r,g,b);
+        doc.text(String(value), x+5, y+14);
+    }
+    function sectionTitle(text, y) {
+        fg(245,158,11); doc.setFontSize(11); doc.setFont('helvetica','bold');
+        doc.text(text, 8, y);
+        doc.setDrawColor(245,158,11); doc.setLineWidth(0.4);
+        doc.line(8, y+2, PW-8, y+2);
+    }
 
-    const kpis = [
-        ['Total Sales',  '$ '+Number(s.totalSale||0).toLocaleString('es-CO')],
-        ['Total Profit', '$ '+Number(s.totalProfit||0).toLocaleString('es-CO')],
-        ['Margin',       (s.globalMargin||0)+'%'],
-        ['Invoices',     s.totalInvoices||0],
-        ['Top Branch',   s.topBranch||'—'],
-        ['Top Product',  s.topProductByQty||'—']
+    // ════════════════════════════════════════════════════════
+    // PÁGINA 1 — PORTADA
+    // ════════════════════════════════════════════════════════
+    bg(17,24,39); doc.rect(0,0,PW,PH,'F');
+
+    // Franja amber superior
+    bg(245,158,11); doc.rect(0,0,PW,3,'F');
+
+    // Logo / Título
+    fg(245,158,11); doc.setFontSize(36); doc.setFont('helvetica','bold');
+    doc.text('ORIGIN BEER', PW/2, 45, {align:'center'});
+    fg(229,231,235); doc.setFontSize(16); doc.setFont('helvetica','normal');
+    doc.text('Enterprise Sales Report', PW/2, 58, {align:'center'});
+    fg(107,114,128); doc.setFontSize(10);
+    doc.text('Admin Dashboard  |  Sprint 6  |  RF-28', PW/2, 67, {align:'center'});
+
+    // Línea divisora
+    doc.setDrawColor(245,158,11); doc.setLineWidth(0.3);
+    doc.line(60, 72, PW-60, 72);
+
+    // Info block
+    const infoRows = [
+        ['Report Date',  new Date().toLocaleDateString('es-CO',{day:'2-digit',month:'long',year:'numeric'})],
+        ['Generated By', (u.firstName||'Admin')+' '+(u.lastName||'')],
+        ['Role',         'ADMIN'],
+        ['Scope',        'All Branches — Consolidated'],
+        ['Period',       (document.getElementById('filterDateFrom')?.value||'—')+' → '+(document.getElementById('filterDateTo')?.value||'—')],
     ];
-    let kx=20, ky=115;
-    kpis.forEach(([label,val],i)=>{
-        if(i===3){kx=20;ky=145;}
-        doc.setFillColor(31,41,55); doc.roundedRect(kx,ky,80,22,3,3,'F');
-        doc.setFontSize(8);  doc.setTextColor(156,163,175); doc.text(label,kx+5,ky+8);
-        doc.setFontSize(12); doc.setTextColor(245,158,11);  doc.text(String(val),kx+5,ky+17);
-        kx+=88;
+    let iy = 82;
+    infoRows.forEach(([k,v]) => {
+        bg(31,41,55); doc.rect(70,iy-4,PW-140,8,'F');
+        fg(107,114,128); doc.setFontSize(8); doc.setFont('helvetica','bold');
+        doc.text(k, 78, iy+1);
+        fg(229,231,235); doc.setFont('helvetica','normal');
+        doc.text(v, 140, iy+1);
+        iy += 10;
     });
 
+    // KPI cards en portada
+    const kpiList = [
+        ['Total Sales',   '$ '+Number(s.totalSale  ||0).toLocaleString('es-CO'), 245,158,11],
+        ['Total Profit',  '$ '+Number(s.totalProfit||0).toLocaleString('es-CO'), 16,185,129],
+        ['Avg Margin',    (s.globalMargin||0)+'%',                               99,102,241],
+        ['Total Invoices',String(s.totalInvoices||0),                            59,130,246],
+        ['Avg Ticket',    '$ '+Number(s.avgTicket  ||0).toLocaleString('es-CO'), 245,158,11],
+        ['Units Sold',    String(s.totalQty||0),                                 16,185,129],
+    ];
+    const kW=44, kH=20, kGap=4;
+    const kStartX = (PW - (kW*6 + kGap*5)) / 2;
+    kpiList.forEach(([lbl,val,r,g,b], i) => {
+        kpiBox(kStartX + i*(kW+kGap), 155, kW, kH, lbl, val, r, g, b);
+    });
+
+    // Franja amber inferior
+    bg(245,158,11); doc.rect(0,PH-3,PW,3,'F');
+
+    // ════════════════════════════════════════════════════════
+    // PÁGINA 2 — GRÁFICAS
+    // ════════════════════════════════════════════════════════
     doc.addPage();
-    doc.setFontSize(13); doc.setTextColor(245,158,11);
-    doc.text('Product Sales Detail (RF-28)', 14, 14);
+    bg(17,24,39); doc.rect(0,0,PW,PH,'F');
+    bg(245,158,11); doc.rect(0,0,PW,3,'F'); doc.rect(0,PH-3,PW,3,'F');
+    pdfHeader(2, '?'); // se actualiza al final
+    sectionTitle('Visual Analytics', 20);
+
+    // Capturar gráficas del DOM como imágenes
+    const chartIds = [
+        { id:'chartDaily',    label:'Daily Sales',        x:8,   y:26,  w:130, h:70 },
+        { id:'chartPayment',  label:'Payment Methods',    x:148, y:26,  w:70,  h:70 },
+        { id:'chartProducts', label:'Top Products',       x:8,   y:106, w:130, h:70 },
+        { id:'chartBranch',   label:'Sales by Branch',    x:148, y:106, w:70,  h:70 },
+    ];
+
+    for (const ch of chartIds) {
+        const canvas = document.getElementById(ch.id);
+        if (!canvas) continue;
+        try {
+            const imgData = canvas.toDataURL('image/png', 0.95);
+            // card background
+            bg(31,41,55); doc.roundedRect(ch.x, ch.y, ch.w, ch.h, 2, 2, 'F');
+            fg(156,163,175); doc.setFontSize(7); doc.setFont('helvetica','bold');
+            doc.text(ch.label.toUpperCase(), ch.x+3, ch.y+5);
+            doc.addImage(imgData, 'PNG', ch.x+2, ch.y+7, ch.w-4, ch.h-10);
+        } catch(e) { console.warn('Chart capture failed:', ch.id, e); }
+    }
+
+    // Heatmap como mini-tabla coloreada (el canvas del heatmap no existe, lo reconstruimos)
+    const hourData = s.hourlyActivity || {};
+    const maxH     = Math.max(...Object.values(hourData), 1);
+    bg(31,41,55); doc.roundedRect(224, 26, 65, 150, 2, 2, 'F');
+    fg(156,163,175); doc.setFontSize(7); doc.setFont('helvetica','bold');
+    doc.text('HOURLY ACTIVITY', 227, 31);
+    for (let h = 0; h < 24; h++) {
+        const cnt = hourData[h] || 0;
+        const pct = cnt / maxH;
+        const col = pct>0.8?[245,158,11]:pct>0.5?[217,119,6]:pct>0.2?[146,64,14]:[31,41,55];
+        const row = Math.floor(h/4), col2 = h%4;
+        const cx  = 226 + col2*15, cy = 34 + row*22;
+        doc.setFillColor(...col); doc.roundedRect(cx, cy, 13, 18, 1, 1, 'F');
+        fg(255,255,255); doc.setFontSize(8); doc.setFont('helvetica','bold');
+        doc.text(`${h}h`, cx+6.5, cy+8, {align:'center'});
+        fg(200,200,200); doc.setFontSize(6);
+        doc.text(String(cnt), cx+6.5, cy+14, {align:'center'});
+    }
+
+    // ════════════════════════════════════════════════════════
+    // PÁGINAS 3+ — TABLA DETALLE RF-28
+    // ════════════════════════════════════════════════════════
+    doc.addPage();
+    bg(17,24,39); doc.rect(0,0,PW,PH,'F');
+    bg(245,158,11); doc.rect(0,0,PW,3,'F'); doc.rect(0,PH-3,PW,3,'F');
+    sectionTitle('Product Sales Detail  (RF-28)', 20);
+
+    // Totals summary bar antes de la tabla
+    const totals = [
+        ['Total Sale',   '$ '+Number(s.totalSale  ||0).toLocaleString('es-CO')],
+        ['Total Profit', '$ '+Number(s.totalProfit||0).toLocaleString('es-CO')],
+        ['Units',        String(s.totalQty||0)],
+        ['Records',      String(filteredRows.length)],
+    ];
+    bg(31,41,55); doc.rect(8,23,PW-16,10,'F');
+    totals.forEach(([k,v],i) => {
+        const tx = 12 + i*68;
+        fg(107,114,128); doc.setFontSize(7); doc.setFont('helvetica','normal');
+        doc.text(k+':', tx, 30);
+        fg(245,158,11); doc.setFontSize(8); doc.setFont('helvetica','bold');
+        doc.text(v, tx+22, 30);
+    });
+
     doc.autoTable({
-        head:[['Close Date','Code','Product','Qty','Unit Cost','Total Sale','Total Cost','Profit','Branch']],
-        body: filteredRows.map(r=>[
-            r.closeDate?new Date(r.closeDate).toLocaleDateString('es-CO'):'',
-            r.productCode, r.productName, r.quantity,
-            '$ '+Number(r.unitCostPrice).toLocaleString('es-CO'),
-            '$ '+Number(r.totalSale).toLocaleString('es-CO'),
-            '$ '+Number(r.totalCost).toLocaleString('es-CO'),
-            '$ '+Number(r.profit).toLocaleString('es-CO')+' ('+r.margin+'%)',
-            r.branchName
-        ]),
-        startY:26,
-        styles:{fontSize:8,cellPadding:2,textColor:[229,231,235],fillColor:[17,24,39]},
-        headStyles:{fillColor:[245,158,11],textColor:[0,0,0],fontStyle:'bold'},
-        alternateRowStyles:{fillColor:[31,41,55]},
+        head: [['Date','Code','Product','Category','Qty','Unit Cost','Total Sale','Total Cost','Profit (%)','Branch']],
+        body: filteredRows.map(r => {
+            const margin = parseFloat(r.margin||0);
+            return [
+                r.closeDate ? new Date(r.closeDate).toLocaleDateString('es-CO') : '—',
+                r.productCode||'—',
+                r.productName||'—',
+                r.category||'—',
+                r.quantity||0,
+                '$ '+Number(r.unitCostPrice||0).toLocaleString('es-CO'),
+                '$ '+Number(r.totalSale||0).toLocaleString('es-CO'),
+                '$ '+Number(r.totalCost||0).toLocaleString('es-CO'),
+                '$ '+Number(r.profit||0).toLocaleString('es-CO')+' ('+margin+'%)',
+                r.branchName||'—',
+            ];
+        }),
+        startY: 36,
+        margin: { left:8, right:8 },
+        styles: {
+            fontSize:7, cellPadding:2.5,
+            textColor:[229,231,235], fillColor:[17,24,39],
+            lineColor:[47,55,72], lineWidth:0.2,
+            font:'helvetica'
+        },
+        headStyles: {
+            fillColor:[245,158,11], textColor:[17,24,39],
+            fontStyle:'bold', fontSize:7.5, halign:'center'
+        },
+        alternateRowStyles: { fillColor:[31,41,55] },
+        columnStyles: {
+            0: { halign:'center', cellWidth:22 },
+            1: { halign:'center', cellWidth:18, textColor:[99,130,241] },
+            2: { cellWidth:40 },
+            3: { cellWidth:22, textColor:[107,114,128] },
+            4: { halign:'center', cellWidth:10, fontStyle:'bold' },
+            5: { halign:'right',  cellWidth:22 },
+            6: { halign:'right',  cellWidth:24, textColor:[245,158,11], fontStyle:'bold' },
+            7: { halign:'right',  cellWidth:24 },
+            8: { halign:'right',  cellWidth:30, textColor:[16,185,129], fontStyle:'bold' },
+            9: { cellWidth:28, textColor:[160,106,241] },
+        },
+        theme:'grid',
+        didDrawPage: (data) => {
+            // Header y footer en cada página de la tabla
+            bg(17,24,39); doc.rect(0,0,PW,12,'F');
+            bg(245,158,11); doc.rect(0,0,PW,3,'F');
+            fg(245,158,11); doc.setFontSize(9); doc.setFont('helvetica','bold');
+            doc.text('ORIGIN BEER  |  Sales Report', 8, 8);
+            bg(245,158,11); doc.rect(0,PH-3,PW,3,'F');
+            fg(107,114,128); doc.setFontSize(7); doc.setFont('helvetica','normal');
+            doc.text('CONFIDENTIAL — Internal Use Only', PW/2, PH-5, {align:'center'});
+        }
+    });
+
+    // ════════════════════════════════════════════════════════
+    // PÁGINA FINAL — EXECUTIVE SUMMARY (Branch breakdown)
+    // ════════════════════════════════════════════════════════
+    doc.addPage();
+    bg(17,24,39); doc.rect(0,0,PW,PH,'F');
+    bg(245,158,11); doc.rect(0,0,PW,3,'F'); doc.rect(0,PH-3,PW,3,'F');
+    pdfHeader('—','—');
+    sectionTitle('Executive Summary — Branch Breakdown', 20);
+
+    const branchRows = Object.entries(s.salesByBranch||{}).map(([br,sale]) => {
+        const totalS = Number(s.totalSale||1);
+        const share  = ((Number(sale)/totalS)*100).toFixed(1);
+        return [br, '$ '+Number(sale).toLocaleString('es-CO'), share+'%'];
+    });
+
+    doc.autoTable({
+        head: [['Branch','Total Sales','Share %']],
+        body: branchRows,
+        startY: 26,
+        margin: { left:8, right:8 },
+        styles: { fontSize:10, cellPadding:4, textColor:[229,231,235], fillColor:[17,24,39] },
+        headStyles: { fillColor:[245,158,11], textColor:[17,24,39], fontStyle:'bold', fontSize:10 },
+        alternateRowStyles: { fillColor:[31,41,55] },
+        columnStyles: {
+            0: { cellWidth:100 },
+            1: { halign:'right', textColor:[245,158,11], fontStyle:'bold' },
+            2: { halign:'center', textColor:[16,185,129] },
+        },
         theme:'grid'
     });
-    const pages = doc.getNumberOfPages();
-    for(let i=1;i<=pages;i++){
-        doc.setPage(i); doc.setFontSize(8); doc.setTextColor(107,114,128);
-        doc.text(`Origin Beer — Confidential | Page ${i} of ${pages}`,148,205,{align:'center'});
+
+    // KPIs adicionales
+    const extraKpis = [
+        ['Top Product',  s.topProductByQty||'—'],
+        ['Top Branch',   s.topBranch      ||'—'],
+        ['Top Cashier',  s.topCashier     ||'—'],
+        ['Top Payment',  s.topPayMethod   ||'—'],
+        ['Peak Hour',    s.peakHour       ||'—'],
+    ];
+    let ekY = doc.lastAutoTable.finalY + 10;
+    sectionTitle('Key Indicators', ekY-4);
+    ekY += 4;
+    extraKpis.forEach(([k,v], i) => {
+        const ex = 8 + (i%3)*96, ey = ekY + Math.floor(i/3)*18;
+        bg(31,41,55); doc.roundedRect(ex, ey, 90, 14, 2, 2, 'F');
+        fg(107,114,128); doc.setFontSize(8); doc.setFont('helvetica','normal');
+        doc.text(k, ex+4, ey+6);
+        fg(229,231,235); doc.setFont('helvetica','bold');
+        doc.text(v, ex+4, ey+11);
+    });
+
+    // ── Corregir números de página ────────────────────────────
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        fg(245,158,11); doc.setFontSize(8); doc.setFont('helvetica','normal');
+        doc.text(`Pag ${i} / ${totalPages}`, PW-8, 8, {align:'right'});
     }
+
     doc.save(`origin-beer-admin-report-${today()}.pdf`);
 }
 

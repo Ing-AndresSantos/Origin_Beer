@@ -124,7 +124,10 @@ function renderOrders(orders) {
             <td>$ ${total.toLocaleString('es-CO')}</td>
             <td>
                 <button class="btn-action btn-edit" onclick="openDetailModal(${o.idOrder})">👁 View</button>
-                ${isOpen ? `<button class="btn-action btn-activate" onclick="openPaymentModal(${o.idOrder})">💳 Close</button>` : ''}
+    ${isOpen
+        ? `<button class="btn-action btn-activate" onclick="openPaymentModal(${o.idOrder})">💳 Close</button>`
+        : `<button class="btn-action btn-invoice" onclick="reopenInvoice(${o.idOrder})">🧾 Invoice</button>`
+    }
             </td>
         </tr>`;
     }).join('');
@@ -513,6 +516,36 @@ async function submitPayment() {
     }
 }
 
+// ══════════════════════════════════════════════════════════════
+// REPRINT INVOICE — recupera factura existente y abre el modal
+// ══════════════════════════════════════════════════════════════
+async function reopenInvoice(orderId) {
+    const inv = await apiFetch(`/api/orders/${orderId}/invoice`);
+    if (!inv) { alert('Invoice not found for order #' + orderId); return; }
+
+    // El endpoint devuelve la entidad Invoice — adaptamos al formato
+    // que espera showInvoiceModal
+    const details = await apiFetch(`/api/orders/${orderId}/details`) || [];
+
+    const mapped = {
+        invoiceNumber : inv.invoiceNumber,
+        issuedAt      : inv.issuedAt,
+        branch        : inv.branch?.name    || '—',
+        branchCode    : inv.branch?.code    || '—',
+        table         : inv.order?.table?.tableNumber || '—',
+        cashier       : inv.cashier
+                        ? inv.cashier.firstName + ' ' + inv.cashier.lastName
+                        : '—',
+        paymentMethod : inv.paymentMethod?.name || '—',
+        subtotal      : inv.subtotal,
+        total         : inv.total,
+        amountReceived: inv.amountReceived,
+        changeGiven   : inv.changeGiven,
+        details       : details
+    };
+
+    showInvoiceModal(mapped);
+}
 // ══════════════════════════════════════════════════════════════
 // INVOICE MODAL — US-25  Factura interna
 // ══════════════════════════════════════════════════════════════

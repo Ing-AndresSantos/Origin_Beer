@@ -89,7 +89,7 @@
             <div class="header-buttons" style="display:flex;gap:8px;">
                 <!-- exportReport() genera Excel profesional con SheetJS -->
                 <button class="btn-export" onclick="exportReport()">📊 Excel</button>
-                <button class="btn-export pdf" onclick="exportPDF()">📕 PDF</button>
+                <button class="btn-export pdf" onclick="exportPDF().catch(e=>alert('PDF error: '+e.message))">📕 PDF</button>
             </div>
         </div>
 
@@ -271,9 +271,9 @@
 </div>
 
 <script src="../../shared.js"></script>
-<!-- SheetJS: genera Excel profesional en el navegador sin backend -->
-<script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-<!-- jsPDF: genera PDF -->
+<!-- xlsx-js-style: fork de SheetJS con soporte COMPLETO de estilos (colores, bordes, fuentes) -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<!-- jsPDF + autoTable: PDF profesional con gráficas -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 <!-- Chart.js: gráficas Sprint 6 -->
