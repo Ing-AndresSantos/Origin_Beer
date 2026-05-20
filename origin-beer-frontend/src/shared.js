@@ -173,12 +173,20 @@ function initDate() {
         });
     }
 }
-
+function _logoPath() {
+    const pathname = window.location.pathname;
+    const pagesIdx = pathname.indexOf('/pages/');
+    if (pagesIdx !== -1) {
+        const base = pathname.substring(0, pagesIdx + '/pages/'.length);
+        return window.location.origin + base + 'logo/logo origeen beer.png';
+    }
+    return '/origin-beer-frontend/src/pages/logo/logo origeen beer.png';
+}
 // ── SIDEBAR HTML (admin nav) ──────────────────────────────────
 function getSidebarNav(base = '../') {
     return `
     <div class="sidebar-logo">
-        <img src="${base}../logo/logo origeen beer.png" alt="Origin Beer" class="logo-icon">
+        <img src="${_logoPath()}" alt="Origin Beer" class="logo-icon">
         <div><h2>Origin Beer</h2><p>Management System</p></div>
     </div>
     <div class="sidebar-user">
@@ -212,10 +220,9 @@ function getSidebarNav(base = '../') {
 function getCashierSidebar(base = '../') {
     return `
     <div class="sidebar-logo">
-        <img src="${base}../logo/logo origeen beer.png" alt="Origin Beer" class="logo-icon">
+        <img src="${_logoPath()}" alt="Origin Beer" class="logo-icon">
         <div><h2>Origin Beer</h2><p>Cashier Station</p></div>
     </div>
-
     <div class="sidebar-user">
         <div class="user-name" id="sidebarName">Loading...</div>
         <div class="user-role" id="sidebarRolee">—</div>
@@ -223,6 +230,7 @@ function getCashierSidebar(base = '../') {
     </div>
     <nav class="sidebar-nav">
         <div class="nav-section">Main</div>
+        <a class="nav-item" href="${base}dashboard/dashboard.html"><span class="nav-icon">📊</span> Dashboard</a>
         <div class="nav-section">Operations</div>
         <a class="nav-item" href="${base}orders/orders.html"><span class="nav-icon">🧾</span> Orders</a>
         <a class="nav-item" href="${base}tables/tables.html"><span class="nav-icon">🪑</span> Tables</a>
@@ -245,7 +253,7 @@ function getCashierSidebar(base = '../') {
 function getWaiterSidebar(base = '../') {
     return `
     <div class="sidebar-logo">
-        <img src="${base}../logo/logo origeen beer.png" alt="Origin Beer" class="logo-icon">
+        <img src="${_logoPath()}" alt="Origin Beer" class="logo-icon">
         <div><h2>Origin Beer</h2><p>Waiter Station</p></div>
     </div>
     <div class="sidebar-user">
@@ -255,7 +263,7 @@ function getWaiterSidebar(base = '../') {
     </div>
     <nav class="sidebar-nav">
         <div class="nav-section">Main</div>
-        <a class="nav-item" href="${base}dashboard/dashboard.html"><span class="nav-icon">🍽️</span> Dashboard</a>
+        <a class="nav-item" href="${base}dashboard/dashboard.html"><span class="nav-icon">📊</span> Dashboard</a>
         <div class="nav-section">Operations</div>
         <a class="nav-item" href="${base}tables/tables.html"><span class="nav-icon">🪑</span> Tables</a>
         <a class="nav-item" href="${base}orders/orders.html"><span class="nav-icon">🧾</span> Orders</a>

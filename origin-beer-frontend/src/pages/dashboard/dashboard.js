@@ -143,13 +143,10 @@ async function loadInventory() {
 
 // ── INVOICES / SALES ──────────────────────────────────────────
 async function loadInvoices() {
-    const invoices = await apiFetch('/api/invoices');
-    if (invoices) {
-        const today         = new Date().toDateString();
-        const todayInvoices = invoices.filter(f => new Date(f.issuedAt).toDateString() === today);
-        const total         = todayInvoices.reduce((sum, f) => sum + (f.total || 0), 0);
-        document.getElementById('statInvoices').textContent = todayInvoices.length;
-        document.getElementById('statSales').textContent    = '$ ' + total.toLocaleString('en-US');
+    const data = await apiFetch('/api/reports/dashboard');
+    if (data) {
+        document.getElementById('statInvoices').textContent = data.totalInvoices ?? '0';
+        document.getElementById('statSales').textContent    = '$ ' + Number(data.totalSale ?? 0).toLocaleString('es-CO');
     } else {
         document.getElementById('statInvoices').textContent = '—';
         document.getElementById('statSales').textContent    = '—';

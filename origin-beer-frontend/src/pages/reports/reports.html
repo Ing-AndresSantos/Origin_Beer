@@ -6,6 +6,10 @@
     <title>Origin Beer — Reports</title>
     <link rel="stylesheet" href="../../shared.css">
     <link rel="stylesheet" href="reports.css">
+    <style>
+       
+        @media(max-width:900px){ .charts-grid{ grid-template-columns:1fr!important; } .kpi-extra-grid{ grid-template-columns:repeat(2,1fr); } }
+    </style>
 </head>
 <body>
 
@@ -13,9 +17,9 @@
 
 <main class="main">
     <div class="topbar">
-        <div class="topbar-title">📈 Reports</div>
+        <div class="topbar-title">📊 Reports</div>
         <div class="topbar-right">
-            <div class="badge-online">Server active</div>
+            <div class="badge-online">Live</div>
             <span id="todayDate"></span>
         </div>
     </div>
@@ -23,20 +27,20 @@
     <div class="content">
         <div class="page-header">
             <div>
-                <h2>📈 Reports</h2>
-                <p>Sales and business analytics — Origin Beer</p>
+                <h2>📊 Executive Dashboard</h2>
+                <p>Consolidated multi-branch report — Origin Beer</p>
             </div>
-            <div class="header-buttons">
-                <button class="btn-new" onclick="exportReport()">📄 CSV</button>
-                <button class="btn-new" onclick="exportPDF()">📕 PDF</button>
+            <div class="header-buttons" style="display:flex;gap:8px;">
+                <!-- exportPDF() genera reporte profesional en PDF -->
+                <button class="btn-export pdf" onclick="exportPDF().catch(e=>alert('PDF error: '+e.message))">📕 PDF</button>
             </div>
         </div>
 
-        <!-- Stats -->
+        <!-- Stats originales (mantiene compatibilidad con CSS existente) -->
         <div class="stats-mini">
             <div class="stat-mini">
-                <span class="stat-mini-icon">📊</span>
-                <div><div class="stat-mini-val" id="statTotalOrders">—</div><div class="stat-mini-label">Total Orders</div></div>
+                <span class="stat-mini-icon">🧾</span>
+                <div><div class="stat-mini-val" id="statTotalOrders">—</div><div class="stat-mini-label">Total Invoices</div></div>
             </div>
             <div class="stat-mini">
                 <span class="stat-mini-icon">💰</span>
@@ -44,7 +48,7 @@
             </div>
             <div class="stat-mini">
                 <span class="stat-mini-icon">📦</span>
-                <div><div class="stat-mini-val" id="statProductsSold">—</div><div class="stat-mini-label">Products Sold</div></div>
+                <div><div class="stat-mini-val" id="statProductsSold">—</div><div class="stat-mini-label">Units Sold</div></div>
             </div>
             <div class="stat-mini">
                 <span class="stat-mini-icon">🏢</span>
@@ -52,67 +56,156 @@
             </div>
         </div>
 
-        <!-- Toolbar -->
-        <div class="toolbar">
-            <div class="search-box">
-                <span>🔍</span>
-                <input type="text" id="search" placeholder="Search by order or date..." oninput="filter()">
+        <!-- KPI extra Sprint 6 -->
+        <div class="kpi-extra-grid">
+            <div class="kpi-card green">
+                <span class="kpi-icon">📈</span>
+                <span class="kpi-label">Total Profit</span>
+                <span class="kpi-value" id="kpiTotalProfit">—</span>
             </div>
-            <select class="filter-select" id="filterBranch" onchange="filter()">
+            <div class="kpi-card">
+                <span class="kpi-icon">%</span>
+                <span class="kpi-label">Margin</span>
+                <span class="kpi-value" id="kpiMargin">—</span>
+            </div>
+            <div class="kpi-card purple">
+                <span class="kpi-icon">🎯</span>
+                <span class="kpi-label">Avg Ticket</span>
+                <span class="kpi-value" id="kpiAvgTicket">—</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon">⭐</span>
+                <span class="kpi-label">Top Product</span>
+                <span class="kpi-value" style="font-size:12px;" id="kpiTopProduct">—</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon">🏢</span>
+                <span class="kpi-label">Top Branch</span>
+                <span class="kpi-value" style="font-size:12px;" id="kpiTopBranch">—</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon">👤</span>
+                <span class="kpi-label">Top Cashier</span>
+                <span class="kpi-value" style="font-size:12px;" id="kpiTopCashier">—</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon">💳</span>
+                <span class="kpi-label">Top Payment</span>
+                <span class="kpi-value" style="font-size:12px;" id="kpiTopPayment">—</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon">🕐</span>
+                <span class="kpi-label">Peak Hour</span>
+                <span class="kpi-value" id="kpiPeakHour">—</span>
+            </div>
+        </div>
+
+        <!-- Filter bar Sprint 6 -->
+        <div class="filter-bar">
+            <button class="preset-btn" onclick="setPreset('today')">Today</button>
+            <button class="preset-btn" onclick="setPreset('week')">7 days</button>
+            <button class="preset-btn active" onclick="setPreset('month')">This month</button>
+            <button class="preset-btn" onclick="setPreset('quarter')">Quarter</button>
+            <label>From</label>
+            <input type="date" id="filterDateFrom" onchange="validateDateRange()">
+            <label>To</label>
+            <input type="date" id="filterDateTo" onchange="validateDateRange()">
+            <select class="filter-select" id="filterBranch" onchange="load()" style="background:var(--bg-main,#111);border:1px solid var(--border,#333);border-radius:8px;color:var(--text-main,#eee);padding:6px 10px;font-size:13px;">
                 <option value="">All branches</option>
             </select>
-            <select class="filter-select" id="filterType" onchange="filter()">
-                <option value="">All report types</option>
-                <option value="sales">💵 Sales</option>
-                <option value="inventory">📦 Inventory</option>
-                <option value="expense">💸 Expenses</option>
-            </select>
-            <div class="date-range-filter">
-                <label for="filterDateFrom">From:</label>
-                <input type="date" class="filter-date-input" id="filterDateFrom" onchange="validateDateRange()">
-                <label for="filterDateTo">To:</label>
-                <input type="date" class="filter-date-input" id="filterDateTo" onchange="validateDateRange()">
+            <button class="btn-apply" onclick="load()">Apply</button>
+        </div>
+
+        <!-- Charts row 1 -->
+        <div class="charts-grid" style="grid-template-columns:2fr 1fr;">
+            <div class="chart-card">
+                <div class="chart-title">📅 Daily Sales</div>
+                <div class="chart-wrap"><canvas id="chartDaily"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">💳 Payment Methods</div>
+                <div class="chart-wrap"><canvas id="chartPayment"></canvas></div>
             </div>
         </div>
 
-        <div class="result-info" id="resultInfo"></div>
-
-        <!-- Table -->
-        <div class="table-wrap">
-            <table>
-                <thead>
-                    <tr>
-                        <th>Report Type</th>
-                        <th>Branch</th>
-                        <th>Date</th>
-                        <th>Orders</th>
-                        <th>Amount</th>
-                        <th>Items</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody id="reportsTable">
-                    <tr><td colspan="7"><div class="empty-state"><span class="empty-icon">⏳</span><p>Loading reports...</p></div></td></tr>
-                </tbody>
-            </table>
-            <div class="pagination">
-                <span id="pageInfo">Loading...</span>
-                <div class="pagination-btns" id="pageBtns"></div>
+        <!-- Charts row 2 -->
+        <div class="charts-grid" style="grid-template-columns:1fr 1fr;margin-bottom:20px;">
+            <div class="chart-card">
+                <div class="chart-title">🏆 Top Products by Units</div>
+                <div class="chart-wrap"><canvas id="chartProducts"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">🏢 Sales by Branch</div>
+                <div class="chart-wrap"><canvas id="chartBranch"></canvas></div>
             </div>
         </div>
+
+        <!-- Heatmap -->
+        <div class="chart-card" style="margin-bottom:20px;">
+            <div class="chart-title">🔥 Hourly Activity (00h–23h)</div>
+            <div id="heatmapGrid" class="heatmap-grid"></div>
+            <div style="display:flex;gap:8px;margin-top:10px;align-items:center;">
+                <span style="font-size:10px;color:#6b7280">Low</span>
+                <div style="width:14px;height:14px;background:#1f2937;border-radius:3px;"></div>
+                <div style="width:14px;height:14px;background:#92400e;border-radius:3px;"></div>
+                <div style="width:14px;height:14px;background:#d97706;border-radius:3px;"></div>
+                <div style="width:14px;height:14px;background:#f59e0b;border-radius:3px;"></div>
+                <span style="font-size:10px;color:#6b7280">High</span>
+            </div>
+        </div>
+
+        <!-- Table RF-27 / RF-28 -->
+        <div class="table-section">
+            <div class="table-header-row">
+                <h3>🗃️ Product Sales Detail (RF-28)</h3>
+                <span style="font-size:11px;color:#6b7280" id="pageInfo">—</span>
+            </div>
+            <div class="table-toolbar">
+                <div class="search-box" style="flex:1;">
+                    <span>🔍</span>
+                    <input type="text" id="search" placeholder="Search by product, branch, cashier…" oninput="applyFilter()">
+                </div>
+                <select id="filterType" onchange="applyFilter()">
+                    <option value="">All categories</option>
+                </select>
+            </div>
+            <div class="table-wrap">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Close Date</th>
+                            <th>Code</th>
+                            <th>Product</th>
+                            <th>Qty</th>
+                            <th>Unit Cost</th>
+                            <th>Sale Total</th>
+                            <th>Cost Total</th>
+                            <th>Profit</th>
+                            <th>Branch</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportsTable">
+                        <tr><td colspan="9"><div class="empty-state"><span class="empty-icon">⏳</span><p>Loading…</p></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination-row">
+                <span id="resultInfo"></span>
+                <div id="pageBtns"></div>
+            </div>
+        </div>
+
     </div>
 </main>
 
-<!-- ── REPORT DETAILS MODAL ────────────────────────────────────────────────────────── -->
+<!-- Modal de detalles (mantiene compatibilidad) -->
 <div class="modal-overlay" id="detailsModalOverlay" onclick="closeDetailsModal(event)">
     <div class="modal" onclick="event.stopPropagation()">
         <div class="modal-header">
             <h3>Report Details</h3>
             <button class="modal-close" onclick="closeDetailsModal()">✕</button>
         </div>
-        <div class="modal-body" id="detailsContent">
-            <!-- Report details will be loaded here -->
-        </div>
+        <div class="modal-body" id="detailsContent"></div>
         <div class="modal-footer">
             <button class="btn-secondary" onclick="closeDetailsModal()">Close</button>
             <button class="btn-primary" onclick="printReport()">🖨️ Print</button>
@@ -121,9 +214,11 @@
 </div>
 
 <script src="../../shared.js"></script>
-<script src="../../shared.html"></script>
+<!-- jsPDF + autoTable: PDF profesional con gráficas -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<!-- Chart.js: gráficas Sprint 6 -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="reports.js"></script>
 </body>
 </html>

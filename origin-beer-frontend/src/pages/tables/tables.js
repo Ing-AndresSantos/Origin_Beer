@@ -242,6 +242,7 @@ async function submitOrder() {
             return;
         }
 
+        // ✅ En lugar de redirigir, ir a orders.html abriendo el modal de detalles
         closeModal('orderOverlay');
         window.location.href = `../orders/orders.html?openOrder=${data.idOrder}`;
 

@@ -99,15 +99,17 @@ public class OrderController {
         User      waiter = userRepo.findById(req.getIdWaiter())
                 .orElseThrow(() -> new RuntimeException("Waiter not found"));
 
+        // Validar que la mesa no tenga órdenes abiertas CON PRODUCTOS
         boolean tableOccupied = orderRepo
                 .findByBranch_IdBranchAndStatus(req.getIdBranch(), OrderTicket.OrderStatus.OPEN)
                 .stream()
-                .anyMatch(o -> o.getTable().getIdTable().equals(req.getIdTable()));
+                .filter(o -> o.getTable().getIdTable().equals(req.getIdTable()))
+                .anyMatch(o -> !detailRepo.findByOrder_IdOrder(o.getIdOrder()).isEmpty());
 
         if (tableOccupied)
             return ResponseEntity.status(409)
                     .body("Table " + table.getTableNumber()
-                            + " already has an open order. Close it before creating a new one.");
+                            + " already has an open order with products. Close it before creating a new one.");
 
         OrderTicket order = new OrderTicket();
         order.setBranch(branch);
@@ -122,8 +124,10 @@ public class OrderController {
 
     // ══════════════════════════════════════════════════════════
     // US-19 — ADD PRODUCTS TO AN ORDER
+    // Descuenta inventario inmediatamente al tomar el pedido
     // ══════════════════════════════════════════════════════════
     @PostMapping("/{id}/details")
+    @Transactional
     public ResponseEntity<?> addDetail(@PathVariable Long id,
                                        @RequestBody AddDetailRequest req) {
         OrderTicket order = orderRepo.findById(id)
@@ -143,6 +147,10 @@ public class OrderController {
         if (pb == null || pb.getQuantity() < req.getQuantity())
             return ResponseEntity.status(409)
                     .body("Insufficient stock. Available: " + (pb == null ? 0 : pb.getQuantity()));
+
+        // Descontar inventario inmediatamente (ANTES de agregar a la orden)
+        pb.setQuantity(pb.getQuantity() - req.getQuantity());
+        pbRepo.save(pb);
 
         List<OrderDetail> existing = detailRepo.findByOrder_IdOrder(id);
         Optional<OrderDetail> same = existing.stream()
@@ -167,15 +175,31 @@ public class OrderController {
     }
 
     // ── DELETE detail line ────────────────────────────────────
+    // Restaura el inventario cuando se elimina un producto del pedido
     @DeleteMapping("/{id}/details/{idDetail}")
+    @Transactional
     public ResponseEntity<?> removeDetail(@PathVariable Long id,
                                           @PathVariable Long idDetail) {
         OrderTicket order = orderRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         if (order.getStatus() == OrderTicket.OrderStatus.PAID)
             return ResponseEntity.status(409).body("Cannot modify a PAID order");
+        
+        // Restaurar inventario antes de eliminar
+        OrderDetail detail = detailRepo.findById(idDetail)
+                .orElseThrow(() -> new RuntimeException("Detail not found"));
+        
+        ProductBranch pb = pbRepo
+                .findByProduct_IdProductAndBranch_IdBranch(
+                        detail.getProduct().getIdProduct(),
+                        order.getBranch().getIdBranch())
+                .orElseThrow(() -> new RuntimeException("ProductBranch not found"));
+        
+        pb.setQuantity(pb.getQuantity() + detail.getQuantity());
+        pbRepo.save(pb);
+        
         detailRepo.deleteById(idDetail);
-        return ResponseEntity.ok("Detail removed");
+        return ResponseEntity.ok("Detail removed and inventory restored");
     }
 
     // ── GET details of an order ───────────────────────────────
@@ -186,6 +210,41 @@ public class OrderController {
         return ResponseEntity.ok(detailRepo.findByOrder_IdOrder(id));
     }
 
+    // ── DELETE order ───────────────────────────────────────────
+    // Elimina una orden (solo órdenes OPEN sin pagarse)
+    // Restaura el inventario de todos los productos antes de eliminar
+    @DeleteMapping("/{id}")
+    @Transactional
+    public ResponseEntity<?> deleteOrder(@PathVariable Long id) {
+        OrderTicket order = orderRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        if (order.getStatus() == OrderTicket.OrderStatus.PAID)
+            return ResponseEntity.status(409).body("Cannot delete a PAID order");
+
+        // Restaurar inventario de todos los detalles
+        List<OrderDetail> details = detailRepo.findByOrder_IdOrder(id);
+        for (OrderDetail detail : details) {
+            ProductBranch pb = pbRepo
+                    .findByProduct_IdProductAndBranch_IdBranch(
+                            detail.getProduct().getIdProduct(),
+                            order.getBranch().getIdBranch())
+                    .orElse(null);
+            if (pb != null) {
+                pb.setQuantity(pb.getQuantity() + detail.getQuantity());
+                pbRepo.save(pb);
+            }
+        }
+
+        // Eliminar todos los detalles
+        detailRepo.deleteAll(details);
+
+        // Eliminar la orden
+        orderRepo.deleteById(id);
+
+        return ResponseEntity.ok("Order deleted successfully. Inventory restored.");
+    }
+
     // ══════════════════════════════════════════════════════════
     // US-23 — CLOSE ORDER + REGISTER PAYMENT (Sprint 5)
     // US-24 — Payment method (CASH / DEBIT / CREDIT)
@@ -193,9 +252,10 @@ public class OrderController {
     // US-26 — Register branch on each sale
     //
     // Algoritmo Divide y Vencerás:
-    //   Fase 1 → validaciones (stock, pago, duplicado de factura)
-    //   Fase 2 → descontar inventario
-    //   Fase 3 → cerrar orden y crear factura
+    //   Fase 1 → validaciones (pago, duplicado de factura)
+    //   Fase 2 → cerrar orden y crear factura
+    //
+    // NOTA: El inventario ya fue descontado en addDetail cuando se tomó el pedido
     // ══════════════════════════════════════════════════════════
     @Transactional
     @PatchMapping("/{id}/close")
@@ -246,35 +306,7 @@ public class OrderController {
                             + ") is less than the order total ($" + orderTotal + ")");
         }
 
-        // Validar stock
-        List<String> stockErrors = new ArrayList<>();
-        for (OrderDetail line : details) {
-            ProductBranch pb = pbRepo
-                    .findByProduct_IdProductAndBranch_IdBranch(
-                            line.getProduct().getIdProduct(),
-                            order.getBranch().getIdBranch())
-                    .orElse(null);
-            int available = (pb == null) ? 0 : pb.getQuantity();
-            if (available < line.getQuantity())
-                stockErrors.add(line.getProduct().getName()
-                        + ": need " + line.getQuantity() + ", have " + available);
-        }
-        if (!stockErrors.isEmpty())
-            return ResponseEntity.status(409)
-                    .body("Insufficient stock:\n" + String.join("\n", stockErrors));
-
-        // ── FASE 2: Descontar inventario ──────────────────────
-        for (OrderDetail line : details) {
-            ProductBranch pb = pbRepo
-                    .findByProduct_IdProductAndBranch_IdBranch(
-                            line.getProduct().getIdProduct(),
-                            order.getBranch().getIdBranch())
-                    .get();
-            pb.setQuantity(pb.getQuantity() - line.getQuantity());
-            pbRepo.save(pb);
-        }
-
-        // ── FASE 3: Cerrar orden y crear factura ──────────────
+        // ── FASE 2: Cerrar orden y crear factura ──────────────
         order.setStatus(OrderTicket.OrderStatus.PAID);
         order.setClosedAt(LocalDateTime.now());
         orderRepo.save(order);
