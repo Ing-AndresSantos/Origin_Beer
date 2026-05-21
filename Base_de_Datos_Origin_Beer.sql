@@ -1,14 +1,14 @@
 -- =============================================================================
--- BASE DE DATOS: Origin Beer
--- Sistema de Gestión de Inventario y Ventas Multi-Sede
--- Herramienta: MySQL Workbench 8.0
--- Versión: 2.0
--- Fecha: 2026-03-10
--- Basado en: Historias de Usuario Sprint 2, 3, 4, 5 y 6
+-- DATABASE: Origin Beer
+-- Inventory and Multi-Branch Sales Management System
+-- Tool: MySQL Workbench 8.0
+-- Version: 2.1
+-- Date: 2026-03-25
+-- Based on: User Stories Sprint 2, 3, 4, 5 and 6
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
--- CREACIÓN Y SELECCIÓN DE LA BASE DE DATOS
+-- CREATE AND SELECT DATABASE
 -- -----------------------------------------------------------------------------
 CREATE DATABASE IF NOT EXISTS origin_beer
     CHARACTER SET utf8mb4
@@ -17,521 +17,521 @@ CREATE DATABASE IF NOT EXISTS origin_beer
 USE origin_beer;
 
 -- =============================================================================
--- SPRINT 2 — SEGURIDAD Y GESTIÓN DE USUARIOS
--- HU-04, HU-05, HU-06, HU-07, HU-08
+-- SPRINT 2 — SECURITY AND USER MANAGEMENT
+-- US-04, US-05, US-06, US-07, US-08
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
--- Tabla: rol
--- Propósito: Catálogo de roles del sistema.
--- Rol en el sistema: Define qué tipo de usuario es cada persona
---                    (ADMIN, CAJERO, MESERO).
--- Relaciones: Es referenciada por la tabla `usuario`.
--- HU-07 — Gestión de roles y control de acceso RBAC
+-- Table: role
+-- Purpose: Catalog of system roles.
+-- System role: Defines what type of user each person is (ADMIN, CASHIER, WAITER).
+-- Relationships: Referenced by the `user` table.
+-- US-07 — Role management and RBAC access control
 -- -----------------------------------------------------------------------------
-CREATE TABLE rol (
-    id_rol      INT          NOT NULL AUTO_INCREMENT COMMENT 'Llave primaria del rol',
-    nombre      VARCHAR(30)  NOT NULL                COMMENT 'Nombre del rol: ADMIN, CAJERO, MESERO',
-    descripcion VARCHAR(150) NULL                    COMMENT 'Descripción del rol y sus permisos',
-    activo      TINYINT(1)   NOT NULL DEFAULT 1      COMMENT '1 = activo, 0 = inactivo',
+CREATE TABLE role (
+    id_role     INT          NOT NULL AUTO_INCREMENT COMMENT 'Primary key of the role',
+    name        VARCHAR(30)  NOT NULL                COMMENT 'Role name: ADMIN, CASHIER, WAITER',
+    description VARCHAR(150) NULL                    COMMENT 'Description of the role and its permissions',
+    active      TINYINT(1)   NOT NULL DEFAULT 1      COMMENT '1 = active, 0 = inactive',
 
-    CONSTRAINT pk_rol       PRIMARY KEY (id_rol),
-    CONSTRAINT uq_rol_nombre UNIQUE (nombre)
+    CONSTRAINT pk_role      PRIMARY KEY (id_role),
+    CONSTRAINT uq_role_name UNIQUE (name)
 
 ) ENGINE=InnoDB
-  COMMENT='Catálogo de roles del sistema. Referenciado por usuario. HU-07';
+  COMMENT='System role catalog. Referenced by user. US-07';
 
--- Datos iniciales de roles
-INSERT INTO rol (nombre, descripcion) VALUES
-    ('ADMIN',   'Acceso total al sistema. Gestiona sedes, productos, usuarios y reportes de todas las sedes.'),
-    ('CAJERO',  'Cierra pedidos, registra pagos y consulta reportes únicamente de su sede asignada.'),
-    ('MESERO',  'Crea pedidos por mesa y consulta el stock disponible de su sede asignada.');
+-- Initial role data
+INSERT INTO role (name, description) VALUES
+    ('ADMIN',   'Full system access. Manages branches, products, users and reports across all branches.'),
+    ('CASHIER', 'Closes orders, registers payments and views reports for their assigned branch only.'),
+    ('WAITER',  'Creates table orders and checks available stock for their assigned branch only.');
 
 
 -- -----------------------------------------------------------------------------
--- Tabla: usuario
--- Propósito: Almacena los usuarios del sistema con sus credenciales.
--- Rol en el sistema: Representa a cada persona que accede al sistema.
---                    Su rol determina los permisos de acceso.
--- Relaciones: Depende de `rol`. Es referenciada por `usuario_sede`,
---             `pedido`, `factura` e `inventario_movimiento`.
--- HU-04 — Registro de usuarios
--- HU-05 — Autenticación e inicio de sesión
--- HU-06 — Cambio de contraseña
--- HU-08 — Desactivación de usuarios
+-- Table: user
+-- Purpose: Stores system users with their credentials.
+-- System role: Represents each person who accesses the system.
+--              Their role determines their access permissions.
+-- Relationships: Depends on `role`. Referenced by `user_branch`,
+--                `order`, `invoice` and `inventory_movement`.
+-- US-04 — User registration
+-- US-05 — Authentication and login
+-- US-06 — Password change
+-- US-08 — User deactivation
 -- -----------------------------------------------------------------------------
-CREATE TABLE usuario (
-    id_usuario     INT          NOT NULL AUTO_INCREMENT COMMENT 'Llave primaria del usuario',
-    id_rol         INT          NOT NULL                COMMENT 'FK → rol. Define los permisos del usuario',
-    nombre         VARCHAR(80)  NOT NULL                COMMENT 'Nombre del usuario',
-    apellido       VARCHAR(80)  NOT NULL                COMMENT 'Apellido del usuario',
-    correo         VARCHAR(120) NOT NULL                COMMENT 'Correo electrónico usado para iniciar sesión',
-    contrasena     VARCHAR(255) NOT NULL                COMMENT 'Contraseña cifrada con BCrypt. HU-05, HU-06',
-    telefono       VARCHAR(20)  NULL                    COMMENT 'Teléfono de contacto opcional',
-    activo         TINYINT(1)   NOT NULL DEFAULT 1      COMMENT '1 = activo, 0 = desactivado. HU-08',
-    ultimo_acceso  DATETIME     NULL                    COMMENT 'Fecha y hora del último inicio de sesión. HU-05',
-    fecha_creacion DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_actualizacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+CREATE TABLE user (
+    id_user          INT          NOT NULL AUTO_INCREMENT COMMENT 'Primary key of the user',
+    id_role          INT          NOT NULL                COMMENT 'FK → role. Defines user permissions',
+    first_name       VARCHAR(80)  NOT NULL                COMMENT 'User first name',
+    last_name        VARCHAR(80)  NOT NULL                COMMENT 'User last name',
+    email            VARCHAR(120) NOT NULL                COMMENT 'Email address used to log in',
+    password         VARCHAR(255) NOT NULL                COMMENT 'BCrypt-hashed password. US-05, US-06',
+    phone            VARCHAR(20)  NULL                    COMMENT 'Optional contact phone number',
+    active           TINYINT(1)   NOT NULL DEFAULT 1      COMMENT '1 = active, 0 = deactivated. US-08',
+    last_access      DATETIME     NULL                    COMMENT 'Date and time of last login. US-05',
+    created_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    CONSTRAINT pk_usuario        PRIMARY KEY (id_usuario),
-    CONSTRAINT uq_usuario_correo UNIQUE (correo),
-    CONSTRAINT fk_usuario_rol    FOREIGN KEY (id_rol)
-        REFERENCES rol (id_rol)
+    CONSTRAINT pk_user       PRIMARY KEY (id_user),
+    CONSTRAINT uq_user_email UNIQUE (email),
+    CONSTRAINT fk_user_role  FOREIGN KEY (id_role)
+        REFERENCES role (id_role)
         ON UPDATE CASCADE
         ON DELETE RESTRICT
 
 ) ENGINE=InnoDB
-  COMMENT='Usuarios del sistema. Relacionado con rol, sede y pedido. HU-04, HU-05, HU-06, HU-08';
+  COMMENT='System users. Related to role, branch and order. US-04, US-05, US-06, US-08';
 
 
 -- =============================================================================
--- SPRINT 3 — GESTIÓN DE SEDES
--- HU-09, HU-10, HU-11, HU-12
+-- SPRINT 3 — BRANCH MANAGEMENT
+-- US-09, US-10, US-11, US-12
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
--- Tabla: sede
--- Propósito: Representa cada local o franquicia de Origin Beer.
--- Rol en el sistema: Es la unidad operativa central del sistema.
---                    Inventario, pedidos y reportes están asociados a una sede.
--- Relaciones: Referenciada por `usuario_sede`, `producto_sede`,
---             `pedido`, `factura` e `inventario_movimiento`.
--- HU-09 — Creación de sedes
--- HU-10 — Parametrización y edición de sedes
--- HU-12 — Vista consolidada de todas las sedes
+-- Table: branch
+-- Purpose: Represents each Origin Beer location or franchise.
+-- System role: Central operational unit of the system.
+--              Inventory, orders and reports are all tied to a branch.
+-- Relationships: Referenced by `user_branch`, `product_branch`,
+--                `order`, `invoice` and `inventory_movement`.
+-- US-09 — Branch creation
+-- US-10 — Branch configuration and editing
+-- US-12 — Consolidated view of all branches
 -- -----------------------------------------------------------------------------
-CREATE TABLE sede (
-    id_sede        INT          NOT NULL AUTO_INCREMENT COMMENT 'Llave primaria de la sede',
-    codigo         VARCHAR(10)  NOT NULL                COMMENT 'Código único de la sede. Ej: BOG-01',
-    nombre         VARCHAR(100) NOT NULL                COMMENT 'Nombre descriptivo de la sede',
-    direccion      VARCHAR(200) NULL                    COMMENT 'Dirección física de la sede',
-    ciudad         VARCHAR(80)  NULL                    COMMENT 'Ciudad donde opera la sede',
-    telefono       VARCHAR(20)  NULL                    COMMENT 'Teléfono de contacto de la sede',
-    correo         VARCHAR(120) NULL                    COMMENT 'Correo de la sede',
-    activo         TINYINT(1)   NOT NULL DEFAULT 1      COMMENT '1 = activa, 0 = inactiva',
-    creado_por     INT          NOT NULL                COMMENT 'FK → usuario. Admin que creó la sede. HU-09',
-    fecha_creacion DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_actualizacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+CREATE TABLE branch (
+    id_branch   INT          NOT NULL AUTO_INCREMENT COMMENT 'Primary key of the branch',
+    code        VARCHAR(10)  NOT NULL                COMMENT 'Unique branch code. e.g. BOG-01',
+    name        VARCHAR(100) NOT NULL                COMMENT 'Descriptive name of the branch',
+    address     VARCHAR(200) NULL                    COMMENT 'Physical address of the branch',
+    city        VARCHAR(80)  NULL                    COMMENT 'City where the branch operates',
+    phone       VARCHAR(20)  NULL                    COMMENT 'Branch contact phone number',
+    email       VARCHAR(120) NULL                    COMMENT 'Branch email address',
+    active      TINYINT(1)   NOT NULL DEFAULT 1      COMMENT '1 = active, 0 = inactive',
+    created_by  INT          NOT NULL                COMMENT 'FK → user. Admin who created the branch. US-09',
+    created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    CONSTRAINT pk_sede        PRIMARY KEY (id_sede),
-    CONSTRAINT uq_sede_codigo UNIQUE (codigo),
-    CONSTRAINT fk_sede_creador FOREIGN KEY (creado_por)
-        REFERENCES usuario (id_usuario)
+    CONSTRAINT pk_branch        PRIMARY KEY (id_branch),
+    CONSTRAINT uq_branch_code   UNIQUE (code),
+    CONSTRAINT fk_branch_creator FOREIGN KEY (created_by)
+        REFERENCES user (id_user)
         ON UPDATE CASCADE
         ON DELETE RESTRICT
 
 ) ENGINE=InnoDB
-  COMMENT='Sedes o locales de la franquicia Origin Beer. HU-09, HU-10, HU-12';
+  COMMENT='Origin Beer franchise branches/locations. US-09, US-10, US-12';
 
 
 -- -----------------------------------------------------------------------------
--- Tabla: usuario_sede
--- Propósito: Asocia usuarios a las sedes en las que pueden operar.
--- Rol en el sistema: Controla el acceso por sede según el rol del usuario.
---                    Un ADMIN tiene acceso implícito a todas las sedes.
--- Relaciones: Tabla intermedia entre `usuario` y `sede`.
--- HU-11 — Asociación de usuarios a sedes
+-- Table: user_branch
+-- Purpose: Associates users with the branches they can operate in.
+-- System role: Controls branch-level access based on user role.
+--              An ADMIN has implicit access to all branches.
+-- Relationships: Junction table between `user` and `branch`.
+-- US-11 — Associate users to branches
 -- -----------------------------------------------------------------------------
-CREATE TABLE usuario_sede (
-    id_usuario_sede INT      NOT NULL AUTO_INCREMENT COMMENT 'Llave primaria',
-    id_usuario      INT      NOT NULL                COMMENT 'FK → usuario',
-    id_sede         INT      NOT NULL                COMMENT 'FK → sede',
-    asignado_por    INT      NOT NULL                COMMENT 'FK → usuario. Admin que realizó la asignación',
-    fecha_asignacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+CREATE TABLE user_branch (
+    id_user_branch  INT      NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
+    id_user         INT      NOT NULL                COMMENT 'FK → user',
+    id_branch       INT      NOT NULL                COMMENT 'FK → branch',
+    assigned_by     INT      NOT NULL                COMMENT 'FK → user. Admin who made the assignment',
+    assigned_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT pk_usuario_sede     PRIMARY KEY (id_usuario_sede),
-    CONSTRAINT uq_usuario_sede     UNIQUE (id_usuario, id_sede),
-    CONSTRAINT fk_us_usuario       FOREIGN KEY (id_usuario)  REFERENCES usuario (id_usuario) ON UPDATE CASCADE ON DELETE CASCADE,
-    CONSTRAINT fk_us_sede          FOREIGN KEY (id_sede)     REFERENCES sede    (id_sede)    ON UPDATE CASCADE ON DELETE CASCADE,
-    CONSTRAINT fk_us_asignado_por  FOREIGN KEY (asignado_por) REFERENCES usuario (id_usuario) ON UPDATE CASCADE ON DELETE RESTRICT
+    CONSTRAINT pk_user_branch      PRIMARY KEY (id_user_branch),
+    CONSTRAINT uq_user_branch      UNIQUE (id_user, id_branch),
+    CONSTRAINT fk_ub_user          FOREIGN KEY (id_user)    REFERENCES user   (id_user)   ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_ub_branch        FOREIGN KEY (id_branch)  REFERENCES branch (id_branch) ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_ub_assigned_by   FOREIGN KEY (assigned_by) REFERENCES user  (id_user)   ON UPDATE CASCADE ON DELETE RESTRICT
 
 ) ENGINE=InnoDB
-  COMMENT='Relación N:M entre usuario y sede. Controla el acceso por sede. HU-11';
+  COMMENT='N:M relationship between user and branch. Controls per-branch access. US-11';
 
 
 -- =============================================================================
--- SPRINT 3 — MAESTRA DE PRODUCTOS
--- HU-13, HU-14, HU-15, HU-17
+-- SPRINT 3 — PRODUCT MASTER
+-- US-13, US-14, US-15, US-17
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
--- Tabla: categoria
--- Propósito: Catálogo de categorías para clasificar los productos.
--- Rol en el sistema: Permite organizar y filtrar productos por tipo.
--- Relaciones: Referenciada por `producto`.
--- HU-14 — Categorización de productos
+-- Table: category
+-- Purpose: Catalog of categories for classifying products.
+-- System role: Allows products to be organized and filtered by type.
+-- Relationships: Referenced by `product`.
+-- US-14 — Product categorization
 -- -----------------------------------------------------------------------------
-CREATE TABLE categoria (
-    id_categoria INT          NOT NULL AUTO_INCREMENT COMMENT 'Llave primaria de la categoría',
-    nombre       VARCHAR(60)  NOT NULL                COMMENT 'Nombre de la categoría. Ej: Cervezas Artesanales',
-    descripcion  VARCHAR(160) NULL                    COMMENT 'Descripción de la categoría',
-    activo       TINYINT(1)   NOT NULL DEFAULT 1      COMMENT '1 = activa, 0 = inactiva',
+CREATE TABLE category (
+    id_category INT          NOT NULL AUTO_INCREMENT COMMENT 'Primary key of the category',
+    name        VARCHAR(60)  NOT NULL                COMMENT 'Category name. e.g. Craft Beers',
+    description VARCHAR(160) NULL                    COMMENT 'Category description',
+    active      TINYINT(1)   NOT NULL DEFAULT 1      COMMENT '1 = active, 0 = inactive',
 
-    CONSTRAINT pk_categoria       PRIMARY KEY (id_categoria),
-    CONSTRAINT uq_categoria_nombre UNIQUE (nombre)
+    CONSTRAINT pk_category      PRIMARY KEY (id_category),
+    CONSTRAINT uq_category_name UNIQUE (name)
 
 ) ENGINE=InnoDB
-  COMMENT='Catálogo de categorías de producto. Referenciada por producto. HU-14';
+  COMMENT='Product category catalog. Referenced by product. US-14';
 
--- Datos iniciales de categorías
-INSERT INTO categoria (nombre, descripcion) VALUES
-    ('Cervezas Artesanales',  'Cervezas de producción propia Origin Beer'),
-    ('Cervezas Importadas',   'Cervezas importadas de marcas externas'),
-    ('Bebidas No Alcohólicas','Gaseosas, jugos y agua'),
-    ('Snacks y Comidas',      'Acompañamientos y platos de cocina'),
-    ('Mercancía',             'Ropa, accesorios y souvenirs Origin Beer');
+-- Initial category data
+INSERT INTO category (name, description) VALUES
+    ('Craft Beers',       'Origin Beer in-house craft beers'),
+    ('Imported Beers',    'Imported beers from external brands'),
+    ('Non-Alcoholic',     'Sodas, juices and water'),
+    ('Snacks & Food',     'Side dishes and kitchen plates'),
+    ('Merchandise',       'Origin Beer clothing, accessories and souvenirs');
 
 
 -- -----------------------------------------------------------------------------
--- Tabla: producto
--- Propósito: Catálogo maestro de productos definido por el Administrador.
--- Rol en el sistema: Define qué productos existen en el sistema.
---                    El inventario real por sede se maneja en `producto_sede`.
--- Relaciones: Depende de `categoria` y `usuario`. Es referenciada por
---             `producto_sede` y `pedido_detalle`.
--- HU-13 — Creación de productos
--- HU-14 — Categorización de productos
+-- Table: product
+-- Purpose: Master product catalog defined by the Administrator.
+-- System role: Defines which products exist in the system.
+--              Actual per-branch inventory is managed in `product_branch`.
+-- Relationships: Depends on `category` and `user`. Referenced by
+--                `product_branch` and `order_detail`.
+-- US-13 — Product creation
+-- US-14 — Product categorization
 -- -----------------------------------------------------------------------------
-CREATE TABLE producto (
-    id_producto    INT            NOT NULL AUTO_INCREMENT COMMENT 'Llave primaria del producto',
-    id_categoria   INT            NOT NULL                COMMENT 'FK → categoria. Clasificación del producto',
-    codigo         VARCHAR(20)    NOT NULL                COMMENT 'Código único del producto. Ej: CRV-001',
-    nombre         VARCHAR(120)   NOT NULL                COMMENT 'Nombre del producto',
-    descripcion    VARCHAR(300)   NULL                    COMMENT 'Descripción opcional del producto',
-    unidad         VARCHAR(20)    NOT NULL DEFAULT 'unidad' COMMENT 'Unidad de medida: unidad, ml, g',
-    costo_compra   DECIMAL(12,2)  NOT NULL DEFAULT 0.00   COMMENT 'Costo de adquisición del producto. HU-27',
-    precio_venta   DECIMAL(12,2)  NOT NULL                COMMENT 'Precio de venta al cliente',
-    activo         TINYINT(1)     NOT NULL DEFAULT 1      COMMENT '1 = activo, 0 = inactivo',
-    creado_por     INT            NOT NULL                COMMENT 'FK → usuario. Admin que creó el producto',
-    fecha_creacion DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_actualizacion DATETIME  NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+CREATE TABLE product (
+    id_product   INT            NOT NULL AUTO_INCREMENT COMMENT 'Primary key of the product',
+    id_category  INT            NOT NULL                COMMENT 'FK → category. Product classification',
+    code         VARCHAR(20)    NOT NULL                COMMENT 'Unique product code. e.g. BEV-001',
+    name         VARCHAR(120)   NOT NULL                COMMENT 'Product name',
+    description  VARCHAR(300)   NULL                    COMMENT 'Optional product description',
+    unit         VARCHAR(20)    NOT NULL DEFAULT 'unit' COMMENT 'Unit of measure: unit, ml, g',
+    purchase_cost  DECIMAL(12,2)  NOT NULL DEFAULT 0.00 COMMENT 'Product acquisition cost. US-27',
+    sale_price     DECIMAL(12,2)  NOT NULL              COMMENT 'Selling price to the customer',
+    active       TINYINT(1)     NOT NULL DEFAULT 1      COMMENT '1 = active, 0 = inactive',
+    created_by   INT            NOT NULL                COMMENT 'FK → user. Admin who created the product',
+    created_at   DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    CONSTRAINT pk_producto          PRIMARY KEY (id_producto),
-    CONSTRAINT uq_producto_codigo   UNIQUE (codigo),
-    CONSTRAINT fk_producto_categoria FOREIGN KEY (id_categoria) REFERENCES categoria (id_categoria) ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT fk_producto_creador   FOREIGN KEY (creado_por)   REFERENCES usuario   (id_usuario)   ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT chk_precio_venta  CHECK (precio_venta >= 0),
-    CONSTRAINT chk_costo_compra  CHECK (costo_compra >= 0)
+    CONSTRAINT pk_product             PRIMARY KEY (id_product),
+    CONSTRAINT uq_product_code        UNIQUE (code),
+    CONSTRAINT fk_product_category    FOREIGN KEY (id_category) REFERENCES category (id_category) ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT fk_product_creator     FOREIGN KEY (created_by)  REFERENCES user     (id_user)     ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT chk_sale_price         CHECK (sale_price    >= 0),
+    CONSTRAINT chk_purchase_cost      CHECK (purchase_cost >= 0)
 
 ) ENGINE=InnoDB
-  COMMENT='Catálogo maestro de productos. El inventario por sede está en producto_sede. HU-13, HU-14';
+  COMMENT='Master product catalog. Per-branch inventory is in product_branch. US-13, US-14';
 
 
 -- -----------------------------------------------------------------------------
--- Tabla: producto_sede
--- Propósito: Inventario de cada producto en cada sede.
--- Rol en el sistema: Controla el stock disponible por sede en tiempo real.
---                    Se descuenta automáticamente al cerrar un pedido.
--- Relaciones: Tabla intermedia entre `producto` y `sede`.
---             Relacionada con `inventario_movimiento` para auditoría.
--- HU-15 — Gestión de inventario por sede
--- HU-17 — Consulta de stock disponible por sede
--- HU-21 — Descuento automático de inventario al cerrar pedido
+-- Table: product_branch
+-- Purpose: Inventory of each product at each branch.
+-- System role: Controls real-time available stock per branch.
+--              Automatically decremented when an order is closed.
+-- Relationships: Junction table between `product` and `branch`.
+--                Related to `inventory_movement` for auditing.
+-- US-15 — Per-branch inventory management
+-- US-17 — Check available stock per branch
+-- US-21 — Automatic inventory deduction on order close
 -- -----------------------------------------------------------------------------
-CREATE TABLE producto_sede (
-    id_producto_sede INT       NOT NULL AUTO_INCREMENT COMMENT 'Llave primaria',
-    id_producto      INT       NOT NULL                COMMENT 'FK → producto',
-    id_sede          INT       NOT NULL                COMMENT 'FK → sede',
-    cantidad         INT       NOT NULL DEFAULT 0      COMMENT 'Unidades disponibles en esta sede. HU-17',
-    stock_minimo     INT       NOT NULL DEFAULT 5      COMMENT 'Alerta cuando la cantidad llegue a este valor',
-    actualizado_por  INT       NULL                    COMMENT 'FK → usuario. Último usuario que actualizó el stock',
-    fecha_actualizacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+CREATE TABLE product_branch (
+    id_product_branch INT       NOT NULL AUTO_INCREMENT COMMENT 'Primary key',
+    id_product        INT       NOT NULL                COMMENT 'FK → product',
+    id_branch         INT       NOT NULL                COMMENT 'FK → branch',
+    quantity          INT       NOT NULL DEFAULT 0      COMMENT 'Units available at this branch. US-17',
+    min_stock         INT       NOT NULL DEFAULT 5      COMMENT 'Alert threshold when quantity reaches this value',
+    updated_by        INT       NULL                    COMMENT 'FK → user. Last user who updated the stock',
+    updated_at        DATETIME  NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    CONSTRAINT pk_producto_sede    PRIMARY KEY (id_producto_sede),
-    CONSTRAINT uq_producto_sede    UNIQUE (id_producto, id_sede),
-    CONSTRAINT fk_ps_producto      FOREIGN KEY (id_producto)     REFERENCES producto (id_producto) ON UPDATE CASCADE ON DELETE CASCADE,
-    CONSTRAINT fk_ps_sede          FOREIGN KEY (id_sede)         REFERENCES sede     (id_sede)     ON UPDATE CASCADE ON DELETE CASCADE,
-    CONSTRAINT fk_ps_actualizado   FOREIGN KEY (actualizado_por) REFERENCES usuario  (id_usuario)  ON UPDATE CASCADE ON DELETE SET NULL,
-    CONSTRAINT chk_ps_cantidad     CHECK (cantidad >= 0)
+    CONSTRAINT pk_product_branch    PRIMARY KEY (id_product_branch),
+    CONSTRAINT uq_product_branch    UNIQUE (id_product, id_branch),
+    CONSTRAINT fk_pb_product        FOREIGN KEY (id_product)  REFERENCES product (id_product) ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_pb_branch         FOREIGN KEY (id_branch)   REFERENCES branch  (id_branch)  ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_pb_updated_by     FOREIGN KEY (updated_by)  REFERENCES user    (id_user)    ON UPDATE CASCADE ON DELETE SET NULL,
+    CONSTRAINT chk_pb_quantity      CHECK (quantity >= 0)
 
 ) ENGINE=InnoDB
-  COMMENT='Inventario de productos por sede. Actualizado automáticamente al cerrar pedido. HU-15, HU-17, HU-21';
+  COMMENT='Per-branch product inventory. Auto-updated when order is closed. US-15, US-17, US-21';
 
 
 -- -----------------------------------------------------------------------------
--- Tabla: inventario_movimiento
--- Propósito: Registra cada entrada o salida de inventario por sede.
--- Rol en el sistema: Auditoría completa de los movimientos de stock.
---                    Permite rastrear cada cambio con su origen (venta o ajuste).
--- Relaciones: Depende de `producto`, `sede` y `usuario`.
--- HU-15 — Gestión de inventario por sede
--- HU-21 — Descuento automático de inventario al cerrar pedido
+-- Table: inventory_movement
+-- Purpose: Records every inventory entry or exit per branch.
+-- System role: Full audit trail of stock movements.
+--              Tracks every change with its origin (sale or adjustment).
+-- Relationships: Depends on `product`, `branch` and `user`.
+-- US-15 — Per-branch inventory management
+-- US-21 — Automatic inventory deduction on order close
 -- -----------------------------------------------------------------------------
-CREATE TABLE inventario_movimiento (
-    id_movimiento   BIGINT       NOT NULL AUTO_INCREMENT COMMENT 'Llave primaria del movimiento',
-    id_producto     INT          NOT NULL                COMMENT 'FK → producto',
-    id_sede         INT          NOT NULL                COMMENT 'FK → sede',
-    tipo_movimiento ENUM('ENTRADA', 'SALIDA', 'AJUSTE') NOT NULL COMMENT 'Tipo de movimiento de inventario',
-    cantidad        INT          NOT NULL                COMMENT 'Cantidad afectada (positivo entrada, negativo salida)',
-    cantidad_antes  INT          NOT NULL                COMMENT 'Stock antes del movimiento',
-    cantidad_despues INT         NOT NULL                COMMENT 'Stock después del movimiento',
-    origen          VARCHAR(30)  NULL                    COMMENT 'Origen: PEDIDO, MANUAL, AJUSTE',
-    id_referencia   BIGINT       NULL                    COMMENT 'ID del pedido u operación que generó el movimiento',
-    observacion     VARCHAR(200) NULL                    COMMENT 'Nota descriptiva del movimiento',
-    registrado_por  INT          NOT NULL                COMMENT 'FK → usuario. Quien generó el movimiento',
-    fecha_movimiento DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+CREATE TABLE inventory_movement (
+    id_movement      BIGINT       NOT NULL AUTO_INCREMENT COMMENT 'Primary key of the movement',
+    id_product       INT          NOT NULL                COMMENT 'FK → product',
+    id_branch        INT          NOT NULL                COMMENT 'FK → branch',
+    movement_type    ENUM('IN', 'OUT', 'ADJUSTMENT') NOT NULL COMMENT 'Type of inventory movement',
+    quantity         INT          NOT NULL                COMMENT 'Quantity affected (positive = in, negative = out)',
+    quantity_before  INT          NOT NULL                COMMENT 'Stock before the movement',
+    quantity_after   INT          NOT NULL                COMMENT 'Stock after the movement',
+    origin           VARCHAR(30)  NULL                    COMMENT 'Origin: ORDER, MANUAL, ADJUSTMENT',
+    reference_id     BIGINT       NULL                    COMMENT 'ID of the order or operation that generated the movement',
+    notes            VARCHAR(200) NULL                    COMMENT 'Descriptive note about the movement',
+    recorded_by      INT          NOT NULL                COMMENT 'FK → user. Who generated the movement',
+    moved_at         DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT pk_inventario_movimiento PRIMARY KEY (id_movimiento),
-    CONSTRAINT fk_im_producto  FOREIGN KEY (id_producto)    REFERENCES producto (id_producto) ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT fk_im_sede      FOREIGN KEY (id_sede)        REFERENCES sede     (id_sede)     ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT fk_im_usuario   FOREIGN KEY (registrado_por) REFERENCES usuario  (id_usuario)  ON UPDATE CASCADE ON DELETE RESTRICT
+    CONSTRAINT pk_inventory_movement PRIMARY KEY (id_movement),
+    CONSTRAINT fk_im_product   FOREIGN KEY (id_product)  REFERENCES product (id_product) ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT fk_im_branch    FOREIGN KEY (id_branch)   REFERENCES branch  (id_branch)  ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT fk_im_user      FOREIGN KEY (recorded_by) REFERENCES user    (id_user)    ON UPDATE CASCADE ON DELETE RESTRICT
 
 ) ENGINE=InnoDB
-  COMMENT='Auditoría de movimientos de inventario por sede y producto. HU-15, HU-21';
+  COMMENT='Inventory movement audit per branch and product. US-15, US-21';
 
 
 -- =============================================================================
--- SPRINT 4 — GESTIÓN DE PEDIDOS
--- HU-18, HU-19, HU-20, HU-21
+-- SPRINT 4 — ORDER MANAGEMENT
+-- US-18, US-19, US-20, US-21
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
--- Tabla: mesa
--- Propósito: Representa las mesas físicas de cada sede.
--- Rol en el sistema: Cada pedido queda asociado a una mesa de una sede.
--- Relaciones: Depende de `sede`. Referenciada por `pedido`.
--- HU-18 — Creación de pedido por mesa
+-- Table: table_seat
+-- Purpose: Represents the physical tables at each branch.
+-- System role: Each order is associated with a table at a branch.
+-- Relationships: Depends on `branch`. Referenced by `order`.
+-- US-18 — Create order by table
 -- -----------------------------------------------------------------------------
-CREATE TABLE mesa (
-    id_mesa       INT         NOT NULL AUTO_INCREMENT COMMENT 'Llave primaria de la mesa',
-    id_sede       INT         NOT NULL                COMMENT 'FK → sede. Mesa pertenece a una sede',
-    numero_mesa   VARCHAR(10) NOT NULL                COMMENT 'Número o código de la mesa. Ej: 1, A-2, BAR',
-    capacidad     TINYINT     NOT NULL DEFAULT 4      COMMENT 'Capacidad máxima de personas',
-    activo        TINYINT(1)  NOT NULL DEFAULT 1      COMMENT '1 = activa, 0 = inactiva',
+CREATE TABLE table_seat (
+    id_table    INT         NOT NULL AUTO_INCREMENT COMMENT 'Primary key of the table',
+    id_branch   INT         NOT NULL                COMMENT 'FK → branch. Table belongs to a branch',
+    table_number VARCHAR(10) NOT NULL               COMMENT 'Table number or code. e.g. 1, A-2, BAR',
+    capacity    TINYINT     NOT NULL DEFAULT 4      COMMENT 'Maximum seating capacity',
+    active      TINYINT(1)  NOT NULL DEFAULT 1      COMMENT '1 = active, 0 = inactive',
 
-    CONSTRAINT pk_mesa       PRIMARY KEY (id_mesa),
-    CONSTRAINT uq_mesa_sede  UNIQUE (id_sede, numero_mesa),
-    CONSTRAINT fk_mesa_sede  FOREIGN KEY (id_sede) REFERENCES sede (id_sede) ON UPDATE CASCADE ON DELETE CASCADE
+    CONSTRAINT pk_table_seat      PRIMARY KEY (id_table),
+    CONSTRAINT uq_table_branch    UNIQUE (id_branch, table_number),
+    CONSTRAINT fk_table_branch    FOREIGN KEY (id_branch) REFERENCES branch (id_branch) ON UPDATE CASCADE ON DELETE CASCADE
 
 ) ENGINE=InnoDB
-  COMMENT='Mesas físicas por sede. Cada pedido se asocia a una mesa. HU-18';
+  COMMENT='Physical tables per branch. Each order is linked to a table. US-18';
 
 
 -- -----------------------------------------------------------------------------
--- Tabla: pedido
--- Propósito: Representa un pedido abierto en una mesa de una sede.
--- Rol en el sistema: Es la entidad central de la operación de venta.
---                    Un pedido pasa de ABIERTO a PAGADO al cerrar la venta.
--- Relaciones: Depende de `sede`, `mesa` y `usuario` (mesero).
---             Referenciada por `pedido_detalle` y `factura`.
--- HU-18 — Creación de pedido por mesa
--- HU-20 — Control de estados del pedido
--- HU-21 — Descuento automático de inventario al cerrar pedido
+-- Table: order_ticket
+-- Purpose: Represents an open order at a table in a branch.
+-- System role: Central entity of the sales operation.
+--              An order moves from OPEN to PAID when the sale is closed.
+-- Relationships: Depends on `branch`, `table_seat` and `user` (waiter).
+--                Referenced by `order_detail` and `invoice`.
+-- US-18 — Create order by table
+-- US-20 — Order status control
+-- US-21 — Automatic inventory deduction on order close
 -- -----------------------------------------------------------------------------
-CREATE TABLE pedido (
-    id_pedido      BIGINT      NOT NULL AUTO_INCREMENT COMMENT 'Llave primaria del pedido',
-    id_sede        INT         NOT NULL                COMMENT 'FK → sede. Sede donde se generó el pedido',
-    id_mesa        INT         NOT NULL                COMMENT 'FK → mesa. Mesa asociada al pedido',
-    id_mesero      INT         NOT NULL                COMMENT 'FK → usuario. Mesero que creó el pedido',
-    estado         ENUM('ABIERTO', 'PAGADO') NOT NULL DEFAULT 'ABIERTO' COMMENT 'Estado del pedido. HU-20',
-    observaciones  VARCHAR(300) NULL                   COMMENT 'Notas u observaciones del pedido',
-    fecha_apertura DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Fecha y hora de apertura del pedido',
-    fecha_cierre   DATETIME    NULL                    COMMENT 'Fecha y hora de cierre. Se rellena al pagar. HU-23',
-    fecha_creacion DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    fecha_actualizacion DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+CREATE TABLE order_ticket (
+    id_order     BIGINT       NOT NULL AUTO_INCREMENT COMMENT 'Primary key of the order',
+    id_branch    INT          NOT NULL                COMMENT 'FK → branch. Branch where the order was created',
+    id_table     INT          NOT NULL                COMMENT 'FK → table_seat. Table linked to the order',
+    id_waiter    INT          NOT NULL                COMMENT 'FK → user. Waiter who created the order',
+    status       ENUM('OPEN', 'PAID') NOT NULL DEFAULT 'OPEN' COMMENT 'Order status. US-20',
+    notes        VARCHAR(300) NULL                    COMMENT 'Notes or observations for the order',
+    opened_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Date and time the order was opened',
+    closed_at    DATETIME     NULL                    COMMENT 'Date and time of closing. Set when paid. US-23',
+    created_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    CONSTRAINT pk_pedido       PRIMARY KEY (id_pedido),
-    CONSTRAINT fk_pedido_sede  FOREIGN KEY (id_sede)   REFERENCES sede    (id_sede)    ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT fk_pedido_mesa  FOREIGN KEY (id_mesa)   REFERENCES mesa    (id_mesa)    ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT fk_pedido_mesero FOREIGN KEY (id_mesero) REFERENCES usuario (id_usuario) ON UPDATE CASCADE ON DELETE RESTRICT
+    CONSTRAINT pk_order_ticket      PRIMARY KEY (id_order),
+    CONSTRAINT fk_order_branch      FOREIGN KEY (id_branch) REFERENCES branch     (id_branch) ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT fk_order_table       FOREIGN KEY (id_table)  REFERENCES table_seat (id_table)  ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT fk_order_waiter      FOREIGN KEY (id_waiter) REFERENCES user       (id_user)   ON UPDATE CASCADE ON DELETE RESTRICT
 
 ) ENGINE=InnoDB
-  COMMENT='Pedidos por mesa. Estado ABIERTO → PAGADO al cerrar la venta. HU-18, HU-20, HU-21';
+  COMMENT='Orders per table. Status OPEN → PAID when sale is closed. US-18, US-20, US-21';
 
 
 -- -----------------------------------------------------------------------------
--- Tabla: pedido_detalle
--- Propósito: Líneas de producto dentro de un pedido.
--- Rol en el sistema: Registra qué productos y cantidades tiene cada pedido.
---                    Guarda el precio y costo al momento de la venta para
---                    mantener la integridad histórica de los reportes.
--- Relaciones: Depende de `pedido` y `producto`.
--- HU-19 — Agregar productos a un pedido
--- HU-27 — Reporte de ventas (usa precio y costo histórico)
+-- Table: order_detail
+-- Purpose: Product lines within an order.
+-- System role: Records which products and quantities each order contains.
+--              Stores price and cost at the time of sale to preserve
+--              historical integrity for reports.
+-- Relationships: Depends on `order_ticket` and `product`.
+-- US-19 — Add products to an order
+-- US-27 — Sales report (uses historical price and cost)
 -- -----------------------------------------------------------------------------
-CREATE TABLE pedido_detalle (
-    id_detalle    BIGINT         NOT NULL AUTO_INCREMENT COMMENT 'Llave primaria del detalle',
-    id_pedido     BIGINT         NOT NULL                COMMENT 'FK → pedido',
-    id_producto   INT            NOT NULL                COMMENT 'FK → producto',
-    cantidad      INT            NOT NULL                COMMENT 'Cantidad de unidades solicitadas',
-    precio_venta  DECIMAL(12,2)  NOT NULL                COMMENT 'Precio de venta al momento del pedido (histórico)',
-    costo_compra  DECIMAL(12,2)  NOT NULL                COMMENT 'Costo de compra al momento del pedido (histórico)',
-    subtotal      DECIMAL(14,2)  GENERATED ALWAYS AS (cantidad * precio_venta) STORED COMMENT 'Subtotal calculado automáticamente',
-    observacion   VARCHAR(150)   NULL                    COMMENT 'Nota del mesero sobre este ítem',
-    fecha_agregado DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+CREATE TABLE order_detail (
+    id_detail      BIGINT         NOT NULL AUTO_INCREMENT COMMENT 'Primary key of the detail line',
+    id_order       BIGINT         NOT NULL                COMMENT 'FK → order_ticket',
+    id_product     INT            NOT NULL                COMMENT 'FK → product',
+    quantity       INT            NOT NULL                COMMENT 'Number of units requested',
+    sale_price     DECIMAL(12,2)  NOT NULL                COMMENT 'Sale price at the time of order (historical)',
+    purchase_cost  DECIMAL(12,2)  NOT NULL                COMMENT 'Purchase cost at the time of order (historical)',
+    subtotal       DECIMAL(14,2)  GENERATED ALWAYS AS (quantity * sale_price) STORED COMMENT 'Automatically calculated subtotal',
+    note           VARCHAR(150)   NULL                    COMMENT 'Waiter note about this item',
+    added_at       DATETIME       NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT pk_pedido_detalle   PRIMARY KEY (id_detalle),
-    CONSTRAINT fk_pd_pedido        FOREIGN KEY (id_pedido)   REFERENCES pedido   (id_pedido)   ON UPDATE CASCADE ON DELETE CASCADE,
-    CONSTRAINT fk_pd_producto      FOREIGN KEY (id_producto) REFERENCES producto (id_producto) ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT chk_pd_cantidad     CHECK (cantidad    > 0),
-    CONSTRAINT chk_pd_precio       CHECK (precio_venta >= 0)
+    CONSTRAINT pk_order_detail      PRIMARY KEY (id_detail),
+    CONSTRAINT fk_od_order          FOREIGN KEY (id_order)   REFERENCES order_ticket (id_order)   ON UPDATE CASCADE ON DELETE CASCADE,
+    CONSTRAINT fk_od_product        FOREIGN KEY (id_product) REFERENCES product       (id_product) ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT chk_od_quantity      CHECK (quantity   > 0),
+    CONSTRAINT chk_od_sale_price    CHECK (sale_price >= 0)
 
 ) ENGINE=InnoDB
-  COMMENT='Detalle de productos por pedido. Precio y costo históricos para reportes. HU-19, HU-27';
+  COMMENT='Order product lines. Historical price and cost for reports. US-19, US-27';
 
 
 -- =============================================================================
--- SPRINT 5 — FACTURACIÓN Y PAGOS
--- HU-23, HU-24, HU-25, HU-26
+-- SPRINT 5 — BILLING AND PAYMENTS
+-- US-23, US-24, US-25, US-26
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
--- Tabla: metodo_pago
--- Propósito: Catálogo de métodos de pago aceptados.
--- Rol en el sistema: Define las opciones de pago disponibles al cerrar un pedido.
--- Relaciones: Referenciada por `factura`.
--- HU-24 — Registro de método de pago
+-- Table: payment_method
+-- Purpose: Catalog of accepted payment methods.
+-- System role: Defines the payment options available when closing an order.
+-- Relationships: Referenced by `invoice`.
+-- US-24 — Register payment method
 -- -----------------------------------------------------------------------------
-CREATE TABLE metodo_pago (
-    id_metodo_pago INT         NOT NULL AUTO_INCREMENT COMMENT 'Llave primaria del método de pago',
-    nombre         VARCHAR(30) NOT NULL                COMMENT 'Nombre: EFECTIVO, DEBITO, CREDITO',
-    activo         TINYINT(1)  NOT NULL DEFAULT 1      COMMENT '1 = activo, 0 = inactivo',
+CREATE TABLE payment_method (
+    id_payment_method INT         NOT NULL AUTO_INCREMENT COMMENT 'Primary key of the payment method',
+    name              VARCHAR(30) NOT NULL                COMMENT 'Name: CASH, DEBIT, CREDIT',
+    active            TINYINT(1)  NOT NULL DEFAULT 1      COMMENT '1 = active, 0 = inactive',
 
-    CONSTRAINT pk_metodo_pago       PRIMARY KEY (id_metodo_pago),
-    CONSTRAINT uq_metodo_pago_nombre UNIQUE (nombre)
+    CONSTRAINT pk_payment_method      PRIMARY KEY (id_payment_method),
+    CONSTRAINT uq_payment_method_name UNIQUE (name)
 
 ) ENGINE=InnoDB
-  COMMENT='Catálogo de métodos de pago. Referenciado por factura. HU-24';
+  COMMENT='Payment method catalog. Referenced by invoice. US-24';
 
--- Datos iniciales de métodos de pago
-INSERT INTO metodo_pago (nombre) VALUES
-    ('EFECTIVO'),
-    ('DEBITO'),
-    ('CREDITO');
+-- Initial payment method data
+INSERT INTO payment_method (name) VALUES
+    ('CASH'),
+    ('DEBIT'),
+    ('CREDIT');
 
 
 -- -----------------------------------------------------------------------------
--- Tabla: factura
--- Propósito: Factura interna generada al cerrar un pedido.
--- Rol en el sistema: Registra la venta completada con su método de pago,
---                    el cajero responsable y la sede donde ocurrió.
---                    Un pedido genera exactamente una factura.
--- Relaciones: Depende de `pedido`, `sede`, `usuario` (cajero) y `metodo_pago`.
--- HU-23 — Cierre de pedido y registro de pago
--- HU-25 — Generación de factura interna
--- HU-26 — Registro de sede en cada venta
+-- Table: invoice
+-- Purpose: Internal invoice generated when an order is closed.
+-- System role: Records the completed sale with its payment method,
+--              the responsible cashier and the branch where it occurred.
+--              One order generates exactly one invoice.
+-- Relationships: Depends on `order_ticket`, `branch`, `user` (cashier)
+--                and `payment_method`.
+-- US-23 — Close order and register payment
+-- US-25 — Generate internal invoice
+-- US-26 — Register branch on each sale
 -- -----------------------------------------------------------------------------
-CREATE TABLE factura (
-    id_factura       BIGINT        NOT NULL AUTO_INCREMENT COMMENT 'Llave primaria de la factura',
-    id_pedido        BIGINT        NOT NULL                COMMENT 'FK → pedido. Relación 1:1 con el pedido',
-    id_sede          INT           NOT NULL                COMMENT 'FK → sede. Sede donde se realizó la venta. HU-26',
-    id_cajero        INT           NOT NULL                COMMENT 'FK → usuario. Cajero que cerró el pedido. HU-23',
-    id_metodo_pago   INT           NOT NULL                COMMENT 'FK → metodo_pago. Forma de pago usada. HU-24',
-    numero_factura   VARCHAR(40)   NOT NULL                COMMENT 'Número interno de la factura. Ej: INV-001-20260310-000001',
-    subtotal         DECIMAL(14,2) NOT NULL                COMMENT 'Suma de todos los subtotales del pedido',
-    total            DECIMAL(14,2) NOT NULL                COMMENT 'Total a cobrar (igual a subtotal en este sistema)',
-    monto_recibido   DECIMAL(14,2) NOT NULL                COMMENT 'Monto entregado por el cliente',
-    cambio           DECIMAL(14,2) GENERATED ALWAYS AS (monto_recibido - total) STORED COMMENT 'Cambio devuelto al cliente',
-    observaciones    VARCHAR(200)  NULL                    COMMENT 'Notas adicionales de la factura',
-    fecha_emision    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Fecha y hora de emisión de la factura',
+CREATE TABLE invoice (
+    id_invoice        BIGINT        NOT NULL AUTO_INCREMENT COMMENT 'Primary key of the invoice',
+    id_order          BIGINT        NOT NULL                COMMENT 'FK → order_ticket. 1:1 relationship with the order',
+    id_branch         INT           NOT NULL                COMMENT 'FK → branch. Branch where the sale occurred. US-26',
+    id_cashier        INT           NOT NULL                COMMENT 'FK → user. Cashier who closed the order. US-23',
+    id_payment_method INT           NOT NULL                COMMENT 'FK → payment_method. Payment form used. US-24',
+    invoice_number    VARCHAR(40)   NOT NULL                COMMENT 'Internal invoice number. e.g. INV-001-20260310-000001',
+    subtotal          DECIMAL(14,2) NOT NULL                COMMENT 'Sum of all order subtotals',
+    total             DECIMAL(14,2) NOT NULL                COMMENT 'Total charged (equals subtotal in this system)',
+    amount_received   DECIMAL(14,2) NOT NULL                COMMENT 'Amount given by the customer',
+    change_given      DECIMAL(14,2) GENERATED ALWAYS AS (amount_received - total) STORED COMMENT 'Change returned to customer',
+    notes             VARCHAR(200)  NULL                    COMMENT 'Additional invoice notes',
+    issued_at         DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Invoice issue date and time',
 
-    CONSTRAINT pk_factura           PRIMARY KEY (id_factura),
-    CONSTRAINT uq_factura_pedido    UNIQUE (id_pedido)        COMMENT 'Un pedido genera exactamente una factura',
-    CONSTRAINT uq_factura_numero    UNIQUE (numero_factura),
-    CONSTRAINT fk_factura_pedido    FOREIGN KEY (id_pedido)      REFERENCES pedido      (id_pedido)      ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT fk_factura_sede      FOREIGN KEY (id_sede)        REFERENCES sede        (id_sede)        ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT fk_factura_cajero    FOREIGN KEY (id_cajero)      REFERENCES usuario     (id_usuario)     ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT fk_factura_metodo    FOREIGN KEY (id_metodo_pago) REFERENCES metodo_pago (id_metodo_pago) ON UPDATE CASCADE ON DELETE RESTRICT,
-    CONSTRAINT chk_factura_total    CHECK (total >= 0),
-    CONSTRAINT chk_factura_recibido CHECK (monto_recibido >= 0)
+    CONSTRAINT pk_invoice             PRIMARY KEY (id_invoice),
+    CONSTRAINT uq_invoice_order       UNIQUE (id_order)         COMMENT 'One order generates exactly one invoice',
+    CONSTRAINT uq_invoice_number      UNIQUE (invoice_number),
+    CONSTRAINT fk_invoice_order       FOREIGN KEY (id_order)          REFERENCES order_ticket   (id_order)          ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT fk_invoice_branch      FOREIGN KEY (id_branch)         REFERENCES branch          (id_branch)         ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT fk_invoice_cashier     FOREIGN KEY (id_cashier)        REFERENCES user            (id_user)           ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT fk_invoice_payment     FOREIGN KEY (id_payment_method) REFERENCES payment_method  (id_payment_method) ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT chk_invoice_total      CHECK (total           >= 0),
+    CONSTRAINT chk_invoice_received   CHECK (amount_received >= 0)
 
 ) ENGINE=InnoDB
-  COMMENT='Factura interna por venta. 1 pedido = 1 factura. HU-23, HU-24, HU-25, HU-26';
+  COMMENT='Internal invoice per sale. 1 order = 1 invoice. US-23, US-24, US-25, US-26';
 
 
 -- =============================================================================
--- SPRINT 6 — REPORTES Y DASHBOARD
--- HU-27, HU-28
--- Vistas que soportan los reportes sin tablas adicionales.
--- Los datos provienen de factura, pedido_detalle, producto y sede.
+-- SPRINT 6 — REPORTS AND DASHBOARD
+-- US-27, US-28
+-- Views that support reports without additional tables.
+-- Data comes from invoice, order_detail, product and branch.
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
--- Vista: reporte_ventas_cajero
--- Propósito: Reporte de ventas filtrable por sede y rango de fechas.
--- Uso: Cajero consulta solo su sede. Admin puede filtrar por cualquier sede.
--- HU-27 — Reporte de ventas del Cajero por rango de fechas
+-- View: report_sales_cashier
+-- Purpose: Sales report filterable by branch and date range.
+-- Usage: Cashier queries their branch only. Admin can filter by any branch.
+-- US-27 — Cashier sales report by date range
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE VIEW reporte_ventas_cajero AS
+CREATE OR REPLACE VIEW report_sales_cashier AS
 SELECT
-    DATE(f.fecha_emision)                       AS fecha,
-    s.id_sede                                   AS id_sede,
-    s.nombre                                    AS sede,
-    p.codigo                                    AS codigo_producto,
-    p.nombre                                    AS producto,
-    c.nombre                                    AS categoria,
-    pd.cantidad                                 AS cantidad_vendida,
-    pd.costo_compra                             AS costo_compra,
-    pd.precio_venta                             AS precio_venta,
-    pd.subtotal                                 AS total_venta,
-    (pd.costo_compra * pd.cantidad)             AS total_costo,
-    (pd.subtotal - pd.costo_compra * pd.cantidad) AS ganancia,
-    mp.nombre                                   AS metodo_pago,
-    f.numero_factura,
-    CONCAT(u.nombre, ' ', u.apellido)           AS cajero
-FROM factura        f
-JOIN pedido         pe ON pe.id_pedido    = f.id_pedido
-JOIN pedido_detalle pd ON pd.id_pedido    = pe.id_pedido
-JOIN producto       p  ON p.id_producto   = pd.id_producto
-JOIN categoria      c  ON c.id_categoria  = p.id_categoria
-JOIN sede           s  ON s.id_sede       = f.id_sede
-JOIN metodo_pago    mp ON mp.id_metodo_pago = f.id_metodo_pago
-JOIN usuario        u  ON u.id_usuario    = f.id_cajero;
+    DATE(i.issued_at)                               AS sale_date,
+    b.id_branch                                     AS id_branch,
+    b.name                                          AS branch,
+    p.code                                          AS product_code,
+    p.name                                          AS product,
+    c.name                                          AS category,
+    od.quantity                                     AS quantity_sold,
+    od.purchase_cost                                AS purchase_cost,
+    od.sale_price                                   AS sale_price,
+    od.subtotal                                     AS total_sale,
+    (od.purchase_cost * od.quantity)                AS total_cost,
+    (od.subtotal - od.purchase_cost * od.quantity)  AS profit,
+    pm.name                                         AS payment_method,
+    i.invoice_number,
+    CONCAT(u.first_name, ' ', u.last_name)          AS cashier
+FROM invoice        i
+JOIN order_ticket   ot ON ot.id_order    = i.id_order
+JOIN order_detail   od ON od.id_order    = ot.id_order
+JOIN product        p  ON p.id_product   = od.id_product
+JOIN category       c  ON c.id_category  = p.id_category
+JOIN branch         b  ON b.id_branch    = i.id_branch
+JOIN payment_method pm ON pm.id_payment_method = i.id_payment_method
+JOIN user           u  ON u.id_user      = i.id_cashier;
 
 
 -- -----------------------------------------------------------------------------
--- Vista: reporte_consolidado_admin
--- Propósito: Reporte multi-sede con rentabilidad por producto y sede.
--- Uso: Exclusivo del Administrador. Muestra todas las sedes consolidadas.
--- HU-28 — Reporte consolidado multi-sede del Administrador
+-- View: report_consolidated_admin
+-- Purpose: Multi-branch report with profitability by product and branch.
+-- Usage: Admin only. Shows all branches consolidated.
+-- US-28 — Admin consolidated multi-branch report
 -- -----------------------------------------------------------------------------
-CREATE OR REPLACE VIEW reporte_consolidado_admin AS
+CREATE OR REPLACE VIEW report_consolidated_admin AS
 SELECT
-    s.id_sede                                       AS id_sede,
-    s.codigo                                        AS codigo_sede,
-    s.nombre                                        AS sede,
-    p.codigo                                        AS codigo_producto,
-    p.nombre                                        AS producto,
-    c.nombre                                        AS categoria,
-    SUM(pd.cantidad)                                AS total_unidades_vendidas,
-    SUM(pd.subtotal)                                AS total_ventas,
-    SUM(pd.costo_compra * pd.cantidad)              AS total_costos,
-    SUM(pd.subtotal - pd.costo_compra * pd.cantidad) AS ganancia_bruta,
-    COUNT(DISTINCT f.id_factura)                    AS total_facturas
-FROM factura        f
-JOIN pedido         pe ON pe.id_pedido    = f.id_pedido
-JOIN pedido_detalle pd ON pd.id_pedido    = pe.id_pedido
-JOIN producto       p  ON p.id_producto   = pd.id_producto
-JOIN categoria      c  ON c.id_categoria  = p.id_categoria
-JOIN sede           s  ON s.id_sede       = f.id_sede
-GROUP BY s.id_sede, s.codigo, s.nombre, p.codigo, p.nombre, c.nombre;
+    b.id_branch                                         AS id_branch,
+    b.code                                              AS branch_code,
+    b.name                                              AS branch,
+    p.code                                              AS product_code,
+    p.name                                              AS product,
+    c.name                                              AS category,
+    SUM(od.quantity)                                    AS total_units_sold,
+    SUM(od.subtotal)                                    AS total_revenue,
+    SUM(od.purchase_cost * od.quantity)                 AS total_costs,
+    SUM(od.subtotal - od.purchase_cost * od.quantity)   AS gross_profit,
+    COUNT(DISTINCT i.id_invoice)                        AS total_invoices
+FROM invoice        i
+JOIN order_ticket   ot ON ot.id_order    = i.id_order
+JOIN order_detail   od ON od.id_order    = ot.id_order
+JOIN product        p  ON p.id_product   = od.id_product
+JOIN category       c  ON c.id_category  = p.id_category
+JOIN branch         b  ON b.id_branch    = i.id_branch
+GROUP BY b.id_branch, b.code, b.name, p.code, p.name, c.name;
 
 
 -- =============================================================================
--- RESUMEN DEL MODELO
+-- SUMMARY
 -- =============================================================================
--- Tablas independientes (sin FK):
---   rol, categoria, metodo_pago
+-- Independent tables (no FK):
+--   role, category, payment_method
 --
--- Tablas dependientes nivel 1 (FK a tablas independientes):
---   usuario → rol
---   producto → categoria, usuario
+-- Level 1 dependent tables (FK to independent tables):
+--   user → role
+--   product → category, user
 --
--- Tablas dependientes nivel 2:
---   sede → usuario
---   usuario_sede → usuario, sede
---   producto_sede → producto, sede, usuario
---   inventario_movimiento → producto, sede, usuario
---   mesa → sede
+-- Level 2 dependent tables:
+--   branch → user
+--   user_branch → user, branch
+--   product_branch → product, branch, user
+--   inventory_movement → product, branch, user
+--   table_seat → branch
 --
--- Tablas dependientes nivel 3:
---   pedido → sede, mesa, usuario
+-- Level 3 dependent tables:
+--   order_ticket → branch, table_seat, user
 --
--- Tablas dependientes nivel 4:
---   pedido_detalle → pedido, producto
---   factura → pedido, sede, usuario, metodo_pago
+-- Level 4 dependent tables:
+--   order_detail → order_ticket, product
+--   invoice → order_ticket, branch, user, payment_method
 --
--- Total tablas: 13
--- Total vistas: 2
--- Total relaciones FK: 21
+-- Total tables: 13
+-- Total views:  2
+-- Total FK relationships: 21
 -- =============================================================================

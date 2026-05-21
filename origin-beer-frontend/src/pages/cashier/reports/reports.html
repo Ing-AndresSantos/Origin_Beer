@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Origin Beer — Cashier Reports</title>
+    <link rel="stylesheet" href="../../../shared.css">
+    <link rel="stylesheet" href="reports.css">
+    <style>
+        @media (max-width: 800px) {
+            .charts-grid { grid-template-columns: 1fr; }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+    </style>
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar"></aside>
+
+<main class="main">
+    <div class="topbar">
+        <div class="topbar-title">📊 My Reports</div>
+        <div class="topbar-right">
+            <div class="badge-online">Live</div>
+            <span id="todayDate"></span>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="page-header">
+            <div>
+                <h2>📊 Sales Report</h2>
+                <p>Branch: <strong id="branchBadge">—</strong></p>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <button class="btn-export" onclick="exportPDF()" style="background:#ef4444;color:#fff;border-color:#ef4444;">📕 PDF</button>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <button class="preset-btn" onclick="setPreset('today')">Today</button>
+            <button class="preset-btn" onclick="setPreset('week')">7 days</button>
+            <button class="preset-btn active" onclick="setPreset('month')">This month</button>
+            <label>From</label>
+            <input type="date" id="filterFrom">
+            <label>To</label>
+            <input type="date" id="filterTo">
+            <button class="btn-apply" onclick="load()">Apply</button>
+        </div>
+
+        <!-- KPI Cards -->
+        <div class="kpi-grid">
+            <div class="kpi-card accent">
+                <span class="kpi-icon">💰</span>
+                <span class="kpi-label">Total Sales</span>
+                <span class="kpi-value" id="kpiTotalSale">—</span>
+            </div>
+            <div class="kpi-card green">
+                <span class="kpi-icon">📈</span>
+                <span class="kpi-label">Total Profit</span>
+                <span class="kpi-value" id="kpiTotalProfit">—</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon">%</span>
+                <span class="kpi-label">Margin</span>
+                <span class="kpi-value" id="kpiMargin">—</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon">📦</span>
+                <span class="kpi-label">Units Sold</span>
+                <span class="kpi-value" id="kpiQty">—</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon">🧾</span>
+                <span class="kpi-label">Invoices</span>
+                <span class="kpi-value" id="kpiInvoices">—</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon">🎯</span>
+                <span class="kpi-label">Avg Ticket</span>
+                <span class="kpi-value" id="kpiAvgTicket">—</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon">⭐</span>
+                <span class="kpi-label">Top Product</span>
+                <span class="kpi-value" style="font-size:12px;" id="kpiTopProduct">—</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon">💳</span>
+                <span class="kpi-label">Top Payment</span>
+                <span class="kpi-value" style="font-size:12px;" id="kpiTopPayment">—</span>
+            </div>
+            <div class="kpi-card">
+                <span class="kpi-icon">🕐</span>
+                <span class="kpi-label">Peak Hour</span>
+                <span class="kpi-value" id="kpiPeakHour">—</span>
+            </div>
+        </div>
+
+        <!-- Charts Row 1 -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <div class="chart-title">📅 Daily Sales</div>
+                <div class="chart-wrap"><canvas id="chartDaily"></canvas></div>
+            </div>
+            <div class="chart-card">
+                <div class="chart-title">💳 Payment Methods</div>
+                <div class="chart-wrap"><canvas id="chartPayment"></canvas></div>
+            </div>
+        </div>
+
+        <!-- Charts Row 2 -->
+        <div class="chart-card" style="margin-bottom:20px;">
+            <div class="chart-title">🏆 Top Products by Units</div>
+            <div class="chart-wrap"><canvas id="chartProducts"></canvas></div>
+        </div>
+
+        <!-- Heatmap -->
+        <div class="chart-card" style="margin-bottom:20px;">
+            <div class="chart-title">🔥 Hourly Activity</div>
+            <div id="heatmapGrid" class="heatmap-grid"></div>
+        </div>
+
+        <!-- Table RF-27, RF-28 -->
+        <div class="table-section">
+            <div class="table-header-row">
+                <h3>🗃️ Product Sales Detail</h3>
+                <span style="font-size:11px;color:#6b7280" id="pageInfo">—</span>
+            </div>
+            <div class="table-toolbar">
+                <div class="search-box" style="flex:1">
+                    <span>🔍</span>
+                    <input type="text" id="search" placeholder="Search by product or cashier…" oninput="applyFilter()">
+                </div>
+            </div>
+            <div class="table-wrapper">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Close Date</th>
+                            <th>Code</th>
+                            <th>Product</th>
+                            <th>Qty</th>
+                            <th>Unit Cost</th>
+                            <th>Sale Total</th>
+                            <th>Cost Total</th>
+                            <th>Profit</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportsTable">
+                        <tr><td colspan="8"><div class="empty-state"><span class="empty-icon">⏳</span><p>Loading…</p></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination-row">
+                <span id="resultInfo"></span>
+                <div id="pageBtns"></div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script src="../../../shared.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<script src="reports.js"></script>
+</body>
+</html>

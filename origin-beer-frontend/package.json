@@ -1,0 +1,17 @@
+{
+  "name": "origin-beer-frontend",
+  "version": "1.0.0",
+  "description": "Origin Beer Frontend Application",
+  "main": "src/index.html",
+  "scripts": {
+    "start": "live-server --port=5500 --open=src/pages/login/login.html",
+    "dev": "live-server --port=5500",
+    "serve": "live-server"
+  },
+  "keywords": ["beer", "frontend"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+}

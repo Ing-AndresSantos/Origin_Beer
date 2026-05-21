@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Origin Beer — Cashier</title>
+    <link rel="stylesheet" href="../../../shared.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar"></aside>
+
+<main class="main">
+    <div class="topbar">
+        <div class="topbar-title">Cashier Station</div>
+        <div class="topbar-right">
+            <div class="badge-online">Server active</div>
+            <span id="todayDate"></span>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <div class="welcome-banner cashier-banner">
+            <div>
+                <h1>Good shift, <span id="bannerName">—</span>! 💳</h1>
+                <p>Payment station overview — <span id="bannerDate"></span></p>
+            </div>
+            <div class="role-badge-large">CASHIER</div>
+        </div>
+
+        <div class="stats-grid cashier-grid">
+            <div class="stat-card highlight-card">
+                <div class="stat-header"><span class="stat-label">Sales Today</span><span class="stat-icon">💰</span></div>
+                <div class="stat-value" id="statSalesToday"><span class="loading-val">—</span></div>
+                <div class="stat-sub">Total billed today</div>
+                <div class="stat-trend trend-up">↑ Active</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-label">Pending Payment</span><span class="stat-icon">🔓</span></div>
+                <div class="stat-value" id="statPending"><span class="loading-val">—</span></div>
+                <div class="stat-sub">Orders awaiting payment</div>
+                <div class="stat-trend trend-warn">⏳ Pending</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-label">Invoices Issued</span><span class="stat-icon">🧾</span></div>
+                <div class="stat-value" id="statInvoices"><span class="loading-val">—</span></div>
+                <div class="stat-sub">Closed today</div>
+                <div class="stat-trend trend-up">↑ Today</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-label">Tables Occupied</span><span class="stat-icon">🪑</span></div>
+                <div class="stat-value" id="statTables"><span class="loading-val">—</span></div>
+                <div class="stat-sub">Currently in use</div>
+                <div class="stat-trend trend-up" id="trendTables">Loading...</div>
+            </div>
+        </div>
+
+        <div class="quick-actions cashier-actions">
+            <button class="action-btn primary-action" id="btnCloseOrders">
+                <span class="action-icon">🧾</span><span>Close Orders</span>
+            </button>
+            <button class="action-btn" id="btnTables">
+                <span class="action-icon">🪑</span><span>Tables</span>
+            </button>
+            <button class="action-btn" id="btnPaymentMethods">
+                <span class="action-icon">💸</span><span>Payment Methods</span>
+            </button>
+            <button class="action-btn" id="btnTransactions">
+                <span class="action-icon">💰</span><span>Transactions</span>
+            </button>
+            <button class="action-btn" id="btnReports">
+                <span class="action-icon">📈</span><span>Reports</span>
+            </button>
+            <button class="action-btn" id="btnReconciliation">
+                <span class="action-icon">✅</span><span>Reconciliation</span>
+            </button>
+            <button class="action-btn" id="btnRefunds">
+                <span class="action-icon">⚠️</span><span>Refunds</span>
+            </button>
+        </div>
+
+        <div class="content-grid cashier-content-grid">
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>🔓 Orders Pending Payment</h3>
+                    <button class="panel-link" id="btnViewAllPendingOrders">View all →</button>
+                </div>
+                <div class="panel-body" id="listPendingOrders">
+                    <div class="empty-state"><span class="empty-icon">⏳</span><p>Loading orders...</p></div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>🧾 Recent Invoices</h3>
+                    <button class="panel-link" id="btnViewAllInvoices">View all →</button>
+                </div>
+                <div class="panel-body" id="listInvoices">
+                    <div class="empty-state"><span class="empty-icon">⏳</span><p>Loading invoices...</p></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<script src="../../../shared.js"></script>
+<script src="dashboard.js"></script>
+<script>
+    (function () {
+        const saved = localStorage.getItem('theme') || 'dark';
+        if (saved === 'light') document.body.classList.add('light-mode');
+    })();
+</script>
+</body>
+</html>

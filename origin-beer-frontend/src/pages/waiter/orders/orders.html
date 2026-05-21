@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Origin Beer — Waiter Orders</title>
+    <link rel="stylesheet" href="../../../shared.css">
+    <link rel="stylesheet" href="orders.css">
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar"></aside>
+
+<main class="main">
+    <div class="topbar">
+        <div class="topbar-title">Order Management</div>
+        <div class="topbar-right">
+            <div class="badge-online">Server active</div>
+            <span id="todayDate"></span>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="page-header">
+            <div>
+                <h2>🧾 Orders</h2>
+                <p>View your orders and add products</p>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-mini" style="grid-template-columns: repeat(3, 1fr);">
+            <div class="stat-mini">
+                <span class="stat-mini-icon">🧾</span>
+                <div><div class="stat-mini-val" id="statTotal">—</div><div class="stat-mini-label">My Orders</div></div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">🟡</span>
+                <div><div class="stat-mini-val" id="statOpen">—</div><div class="stat-mini-label">Open</div></div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">✅</span>
+                <div><div class="stat-mini-val" id="statPaid">—</div><div class="stat-mini-label">Paid</div></div>
+            </div>
+        </div>
+
+        <!-- Filters -->
+        <div class="toolbar">
+            <div class="search-box">
+                <span>🔍</span>
+                <input type="text" id="search" placeholder="Search by order #, table..." oninput="filterOrders()">
+            </div>
+            <select class="filter-select" id="filterStatus" onchange="filterOrders()">
+                <option value="">All statuses</option>
+                <option value="OPEN">Open</option>
+                <option value="PAID">Paid</option>
+            </select>
+        </div>
+
+        <div class="result-info" id="resultInfo"></div>
+
+        <!-- Orders Table -->
+        <div class="table-wrapper">
+            <table class="data-table" id="ordersTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Table</th>
+                        <th>Status</th>
+                        <th>Opened</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="ordersBody">
+                    <tr><td colspan="7" class="loading-row">⏳ Loading orders...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<!-- ORDER DETAIL MODAL — with product catalog for OPEN orders  -->
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="detailOverlay" onclick="closeIfOutside(event,'detailOverlay')">
+    <div class="modal modal-xl">
+        <div class="modal-header">
+            <div>
+                <h3 id="detailTitle">🧾 Order #—</h3>
+                <span class="modal-subtitle" id="detailMeta">—</span>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;">
+                <span id="detailStatusBadge" class="badge"></span>
+                <button class="modal-close" onclick="closeModal('detailOverlay')">✕</button>
+            </div>
+        </div>
+        <div class="modal-body detail-body">
+
+            <!-- Left: product catalog (only shown for OPEN orders) -->
+            <div class="detail-left" id="catalogPanel">
+                <div class="detail-section-title">📦 Add Products</div>
+                <div class="search-box" style="margin-bottom:10px;">
+                    <span>🔍</span>
+                    <input type="text" id="productSearch" placeholder="Search product…" oninput="filterCatalog()">
+                </div>
+                <div id="productCatalog" class="product-catalog">
+                    <div class="empty-state"><span class="empty-icon">⏳</span><p>Loading products…</p></div>
+                </div>
+            </div>
+
+            <!-- Right: current order lines -->
+            <div class="detail-right">
+                <div class="detail-section-title">🧾 Order Lines</div>
+                <div id="orderLines" class="order-lines">
+                    <div class="empty-state"><span class="empty-icon">🛒</span><p>No items</p></div>
+                </div>
+                <div class="order-total-row">
+                    <span>Total</span>
+                    <span id="orderTotal">$ 0</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── CUSTOM CONFIRM MODAL ──────────────────────────────────── -->
+<div class="modal-overlay" id="confirmOverlay">
+    <div class="modal confirm-modal">
+        <div class="confirm-icon-wrap">
+            <span id="confirmIcon">🗑️</span>
+        </div>
+        <div class="confirm-body">
+            <h3 class="confirm-title" id="confirmTitle">Cancel Order?</h3>
+            <p class="confirm-message" id="confirmMessage"></p>
+        </div>
+        <div class="confirm-footer">
+            <button class="btn-secondary confirm-btn-cancel" id="confirmCancel">Keep Order</button>
+            <button class="confirm-btn-ok" id="confirmOk">Yes, Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script src="../../../shared.js"></script>
+<script src="orders.js"></script>
+</body>
+</html>

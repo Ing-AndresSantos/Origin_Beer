@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Origin Beer — Waiter</title>
+    <link rel="stylesheet" href="../../../shared.css">
+    <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar"></aside>
+
+<main class="main">
+    <div class="topbar">
+        <div class="topbar-title">My Station</div>
+        <div class="topbar-right">
+            <div class="badge-online">Server active</div>
+            <span id="todayDate"></span>
+        </div>
+    </div>
+
+    <div class="content">
+
+        <div class="welcome-banner waiter-banner">
+            <div>
+                <h1>Ready to serve, <span id="bannerName">—</span>! 🍺</h1>
+                <p>Your shift overview — <span id="bannerDate"></span></p>
+            </div>
+            <div class="role-badge-large">WAITER</div>
+        </div>
+
+        <div class="stats-grid waiter-grid">
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-label">My Open Orders</span><span class="stat-icon">🧾</span></div>
+                <div class="stat-value" id="statMyOrders"><span class="loading-val">—</span></div>
+                <div class="stat-sub">Tables currently served</div>
+                <div class="stat-trend trend-warn">⏳ Active</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-label">Tables Active</span><span class="stat-icon">🪑</span></div>
+                <div class="stat-value" id="statTables"><span class="loading-val">—</span></div>
+                <div class="stat-sub">Available at your branch</div>
+                <div class="stat-trend trend-up" id="trendTables">↑ Loading...</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-header"><span class="stat-label">Orders Today</span><span class="stat-icon">📋</span></div>
+                <div class="stat-value" id="statOrdersToday"><span class="loading-val">—</span></div>
+                <div class="stat-sub">All orders this shift</div>
+                <div class="stat-trend trend-up">↑ Today</div>
+            </div>
+        </div>
+
+        <div class="quick-actions waiter-actions">
+            <button class="action-btn primary-action" id="btnTables">
+                <span class="action-icon">🪑</span><span>View Tables</span>
+            </button>
+            <button class="action-btn" id="btnOrders">
+                <span class="action-icon">🧾</span><span>My Orders</span>
+            </button>
+        </div>
+
+        <div class="content-grid waiter-content-grid">
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>🧾 Open Orders</h3>
+                    <button class="panel-link" id="btnViewAllOrders">View all →</button>
+                </div>
+                <div class="panel-body" id="listOpenOrders">
+                    <div class="empty-state"><span class="empty-icon">⏳</span><p>Loading orders...</p></div>
+                </div>
+            </div>
+            <div class="panel">
+                <div class="panel-header">
+                    <h3>🪑 Tables Status</h3>
+                    <button class="panel-link" id="btnViewAllTables">View all →</button>
+                </div>
+                <div class="panel-body" id="listTables">
+                    <div class="empty-state"><span class="empty-icon">⏳</span><p>Loading tables...</p></div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<script src="../../../shared.js"></script>
+<script src="dashboard.js"></script>
+<script>
+    (function () {
+        const saved = localStorage.getItem('theme') || 'dark';
+        if (saved === 'light') document.body.classList.add('light-mode');
+    })();
+</script>
+</body>
+</html>

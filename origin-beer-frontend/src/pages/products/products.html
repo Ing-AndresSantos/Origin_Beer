@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Origin Beer — Products</title>
+    <link rel="stylesheet" href="../../shared.css">
+    <link rel="stylesheet" href="products.css">
+</head>
+<body>
+
+<aside class="sidebar" id="sidebar"></aside>
+
+<main class="main">
+    <div class="topbar">
+        <div class="topbar-title">Product Catalog</div>
+        <div class="topbar-right">
+            <div class="badge-online">Server active</div>
+            <span id="todayDate"></span>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="page-header">
+            <div>
+                <h2>🛒 Products</h2>
+                <p>Origin Beer master product catalog</p>
+            </div>
+            <button class="btn-new" onclick="openCreateModal()">＋ New Product</button>
+        </div>
+
+        <div class="stats-mini">
+            <div class="stat-mini">
+                <span class="stat-mini-icon">🛒</span>
+                <div><div class="stat-mini-val" id="totalProducts">—</div><div class="stat-mini-label">Total</div></div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">✅</span>
+                <div><div class="stat-mini-val" id="totalActive">—</div><div class="stat-mini-label">Active</div></div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">🏷️</span>
+                <div><div class="stat-mini-val" id="totalCategories">—</div><div class="stat-mini-label">Categories</div></div>
+            </div>
+            <div class="stat-mini">
+                <span class="stat-mini-icon">💰</span>
+                <div><div class="stat-mini-val" id="avgPrice">—</div><div class="stat-mini-label">Avg. Price</div></div>
+            </div>
+        </div>
+
+        <div class="toolbar">
+            <div class="search-box">
+                <span>🔍</span>
+                <input type="text" id="search" placeholder="Search by name, code or category..." oninput="filter()">
+            </div>
+            <select class="filter-select" id="filterCategory" onchange="filter()">
+                <option value="">All categories</option>
+            </select>
+            <select class="filter-select" id="filterStatus" onchange="filter()">
+                <option value="">All statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+            </select>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Category</th>
+                        <th>Unit</th>
+                        <th>Sale Price</th>
+                        <th>Cost Price</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="productsTable">
+                    <tr><td colspan="7"><div class="empty-state"><span class="empty-icon">⏳</span><p>Loading products...</p></div></td></tr>
+                </tbody>
+            </table>
+            <div class="pagination">
+                <span id="pageInfo">Loading...</span>
+                <div class="pagination-btns" id="pageBtns"></div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- ── CREATE / EDIT MODAL ───────────────────────────────────── -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <div class="modal-header">
+            <div>
+                <h3 id="modalTitle">🛒 New Product</h3>
+                <p>Fill in the fields to register a product</p>
+            </div>
+        </div>
+        <div class="modal-body">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Code <span class="required">*</span></label>
+                    <input type="text" id="fCode" placeholder="e.g. BEV-001" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label>Category <span class="required">*</span></label>
+                    <select id="fCategory">
+                        <option value="">— Select a category —</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Name <span class="required">*</span></label>
+                <input type="text" id="fName" placeholder="Product display name" maxlength="120">
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <input type="text" id="fDescription" placeholder="Optional description" maxlength="300">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Unit <span class="required">*</span></label>
+                    <select id="fUnit">
+                        <option value="unit">Unit</option>
+                        <option value="ml">ml</option>
+                        <option value="g">g</option>
+                        <option value="kg">kg</option>
+                        <option value="l">l</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Sale Price <span class="required">*</span></label>
+                    <input type="number" id="fSalePrice" placeholder="0.00" min="0" step="0.01">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Cost Price</label>
+                <input type="number" id="fCostPrice" placeholder="0.00" min="0" step="0.01">
+            </div>
+
+            <div id="formError" class="form-error" style="display:none"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+            <button class="btn-save" id="btnSave" onclick="saveProduct()">Create Product</button>
+        </div>
+    </div>
+</div>
+
+<!-- ── CUSTOM CONFIRM MODAL ──────────────────────────────────── -->
+<div class="modal-overlay" id="confirmOverlay">
+    <div class="modal confirm-modal">
+        <div class="confirm-icon-wrap">
+            <span id="confirmIcon">⚠️</span>
+        </div>
+        <div class="confirm-body">
+            <h3 class="confirm-title" id="confirmTitle">Are you sure?</h3>
+            <p class="confirm-message" id="confirmMessage"></p>
+        </div>
+        <div class="confirm-footer">
+            <button class="btn-cancel confirm-btn-cancel" id="confirmCancel">Cancel</button>
+            <button class="btn-danger-confirm confirm-btn-ok" id="confirmOk">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<script src="../../shared.js"></script>
+<script src="../../shared.html"></script>
+<script src="products.js"></script>
+</body>
+</html>
