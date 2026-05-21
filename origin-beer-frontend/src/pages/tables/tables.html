@@ -146,20 +146,36 @@
     </div>
 </div>
 
-<!-- ═══════ DELETE CONFIRMATION MODAL ══════════════════════════════════ -->
-<div class="modal-overlay" id="deleteOverlay" onclick="closeIfOutside()">
-    <div class="modal modal-sm">
-        <div class="modal-header">
-            <h3>🗑️ Deactivate Table</h3>
-            <button class="modal-close" onclick="closeModal('deleteOverlay')">✕</button>
+<!-- ═══════ CONFIRM (deactivate/activate) MODAL ══════════════════════════ -->
+<div class="modal-overlay" id="confirmOverlay" onclick="closeIfOutside(event,'confirmOverlay')">
+    <div class="modal confirm-modal">
+        <div class="confirm-icon-wrap">
+            <span id="confirmIcon">⚠️</span>
         </div>
-        <div class="modal-body">
-            <p>Are you sure you want to deactivate <strong id="deleteTableName"></strong>?
-            It won't appear to staff but can be re-enabled later.</p>
+        <div class="confirm-body">
+            <h3 class="confirm-title" id="confirmTitle">Are you sure?</h3>
+            <p class="confirm-message" id="confirmMessage"></p>
         </div>
-        <div class="modal-footer">
-            <button class="btn-secondary" onclick="closeModal('deleteOverlay')">Cancel</button>
-            <button class="btn-danger" id="btnConfirmDelete">Deactivate</button>
+        <div class="confirm-footer">
+            <button class="btn-secondary confirm-btn-cancel" id="confirmCancel">Cancel</button>
+            <button class="confirm-btn-ok" id="confirmOk">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══════ OCCUPIED TABLE MODAL ════════════════════════════════════════ -->
+<div class="modal-overlay" id="occupiedOverlay" onclick="closeIfOutside(event,'occupiedOverlay')">
+    <div class="modal confirm-modal">
+        <div class="confirm-icon-wrap">
+            <span>🔴</span>
+        </div>
+        <div class="confirm-body">
+            <h3 class="confirm-title">Table Occupied</h3>
+            <p class="confirm-message" id="occupiedMessage"></p>
+        </div>
+        <div class="confirm-footer">
+            <button class="btn-secondary confirm-btn-cancel" onclick="closeModal('occupiedOverlay')">Close</button>
+            <button class="confirm-btn-view" id="btnViewOrder">👁 View Order</button>
         </div>
     </div>
 </div>

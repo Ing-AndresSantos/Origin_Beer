@@ -7,46 +7,6 @@
     <link rel="stylesheet" href="../../../shared.css">
     <link rel="stylesheet" href="reports.css">
     <style>
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
-        .kpi-card { background: var(--bg-card, #1e1e2e); border: 1px solid var(--border, #2a2a3a); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 5px; transition: transform .15s; }
-        .kpi-card:hover { transform: translateY(-2px); }
-        .kpi-card.accent { border-color: rgba(245,158,11,.4); background: rgba(245,158,11,.06); }
-        .kpi-card.green  { border-color: rgba(16,185,129,.4); background: rgba(16,185,129,.06); }
-        .kpi-icon  { font-size: 20px; }
-        .kpi-label { font-size: 10px; color: var(--text-muted, #888); text-transform: uppercase; letter-spacing: .5px; }
-        .kpi-value { font-size: 18px; font-weight: 700; color: var(--text-main, #eee); }
-
-        .filter-bar { background: var(--bg-card, #1e1e2e); border: 1px solid var(--border, #2a2a3a); border-radius: 12px; padding: 12px 16px; margin-bottom: 18px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-        .filter-bar label { font-size: 11px; color: var(--text-muted, #888); }
-        .filter-bar input[type="date"] { background: var(--bg-main, #111); border: 1px solid var(--border, #333); border-radius: 8px; color: var(--text-main, #eee); padding: 6px 10px; font-size: 13px; }
-        .preset-btn { background: var(--bg-row, #252535); border: 1px solid var(--border, #333); border-radius: 20px; color: var(--text-muted, #888); padding: 5px 12px; font-size: 11px; cursor: pointer; }
-        .preset-btn.active, .preset-btn:hover { background: #f59e0b; color: #000; border-color: #f59e0b; font-weight: 600; }
-        .btn-apply { background: #f59e0b; color: #000; border: none; border-radius: 8px; padding: 7px 16px; font-weight: 700; cursor: pointer; font-size: 13px; }
-
-        .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
-        .chart-card { background: var(--bg-card, #1e1e2e); border: 1px solid var(--border, #2a2a3a); border-radius: 12px; padding: 16px; }
-        .chart-title { font-size: 13px; font-weight: 700; color: var(--text-main, #eee); margin-bottom: 12px; }
-        .chart-wrap { height: 200px; position: relative; }
-
-        .heatmap-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 4px; margin-top: 6px; }
-        .heatmap-cell { border-radius: 4px; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; }
-        .heatmap-hour { font-size: 9px; color: rgba(255,255,255,.5); }
-
-        .table-section { background: var(--bg-card, #1e1e2e); border: 1px solid var(--border, #2a2a3a); border-radius: 12px; overflow: hidden; }
-        .table-header-row { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border, #2a2a3a); flex-wrap: wrap; gap: 10px; }
-        .table-header-row h3 { font-size: 14px; font-weight: 700; margin: 0; }
-        .table-toolbar { display: flex; gap: 10px; padding: 10px 18px; border-bottom: 1px solid var(--border, #2a2a3a); }
-        .data-table th { background: var(--bg-row, #252535); font-size: 11px; text-transform: uppercase; color: var(--text-muted, #888); padding: 10px 12px; }
-        .data-table td { font-size: 12px; padding: 9px 12px; border-bottom: 1px solid var(--border, #2a2a3a); vertical-align: middle; }
-        .data-table tr:hover td { background: var(--bg-row, #252535); }
-        .pagination-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 18px; }
-        .pagination-row span { font-size: 12px; color: var(--text-muted, #888); }
-        #pageBtns button { background: var(--bg-row, #252535); border: 1px solid var(--border, #333); border-radius: 6px; color: var(--text-main, #eee); padding: 4px 9px; margin: 0 2px; cursor: pointer; font-size: 11px; }
-        #pageBtns button.active { background: #f59e0b; color: #000; border-color: #f59e0b; font-weight: 700; }
-        #pageBtns button:disabled { opacity: .4; cursor: default; }
-        .btn-export { background: var(--bg-row, #252535); border: 1px solid var(--border, #333); border-radius: 8px; color: var(--text-main, #eee); padding: 6px 12px; font-size: 12px; cursor: pointer; }
-        .btn-export:hover { background: #f59e0b; color: #000; border-color: #f59e0b; }
-
         @media (max-width: 800px) {
             .charts-grid { grid-template-columns: 1fr; }
             .kpi-grid { grid-template-columns: repeat(2, 1fr); }
@@ -73,7 +33,6 @@
                 <p>Branch: <strong id="branchBadge">—</strong></p>
             </div>
             <div style="display:flex;gap:8px;">
-                <button class="btn-export" onclick="exportCSV()">📄 CSV</button>
                 <button class="btn-export" onclick="exportPDF()" style="background:#ef4444;color:#fff;border-color:#ef4444;">📕 PDF</button>
             </div>
         </div>

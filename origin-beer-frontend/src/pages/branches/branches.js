@@ -264,7 +264,18 @@ async function saveBranch() {
 // ════════════════════════════════════════════════════════════
 async function toggleStatus(id, currentActive) {
     const action = currentActive ? 'deactivate' : 'activate';
-    if (!confirm(`Are you sure you want to ${action} this branch?`)) return;
+    const branch = allBranches.find(b => b.idBranch === id);
+    const branchName = branch ? branch.name : `Branch #${id}`;
+
+    const confirmed = await showConfirm({
+        title:   currentActive ? '🔴 Deactivate Branch?' : '✅ Activate Branch?',
+        message: currentActive
+            ? `"${branchName}" will be marked as inactive and hidden from operations. You can reactivate it at any time.`
+            : `"${branchName}" will be reactivated and available for operations again.`,
+        okLabel: currentActive ? 'Yes, Deactivate' : 'Yes, Activate',
+        danger:  currentActive
+    });
+    if (!confirmed) return;
 
     try {
         const res = await fetch(`${API}/api/branches/${id}/status`, {
@@ -409,6 +420,46 @@ async function doSaveAssignments(selectedIds) {
         btn.disabled = false;
         btn.textContent = 'Save Assignments';
     }
+}
+
+// ════════════════════════════════════════════════════════════
+// CUSTOM CONFIRM MODAL
+// Usage: showConfirm({ title, message, okLabel, danger })
+//        returns a Promise<boolean>
+// ════════════════════════════════════════════════════════════
+function showConfirm({ title = 'Are you sure?', message = '', okLabel = 'Confirm', danger = true } = {}) {
+    return new Promise(resolve => {
+        const overlay = document.getElementById('confirmOverlay');
+        const modal   = overlay.querySelector('.confirm-modal');
+        document.getElementById('confirmTitle').textContent   = title;
+        document.getElementById('confirmMessage').textContent = message;
+        document.getElementById('confirmOk').textContent      = okLabel;
+
+        // Toggle colour variant
+        if (danger) {
+            modal.classList.remove('confirm-safe');
+        } else {
+            modal.classList.add('confirm-safe');
+        }
+
+        overlay.classList.add('active');
+
+        function cleanup(result) {
+            overlay.classList.remove('active');
+            document.getElementById('confirmOk').removeEventListener('click', onOk);
+            document.getElementById('confirmCancel').removeEventListener('click', onCancel);
+            overlay.removeEventListener('click', onBackdrop);
+            resolve(result);
+        }
+
+        function onOk()      { cleanup(true);  }
+        function onCancel()  { cleanup(false); }
+        function onBackdrop(e) { if (e.target === overlay) cleanup(false); }
+
+        document.getElementById('confirmOk').addEventListener('click', onOk);
+        document.getElementById('confirmCancel').addEventListener('click', onCancel);
+        overlay.addEventListener('click', onBackdrop);
+    });
 }
 
 // ── HELPERS ──────────────────────────────────────────────────

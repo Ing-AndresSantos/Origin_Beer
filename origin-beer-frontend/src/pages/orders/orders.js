@@ -125,7 +125,8 @@ function renderOrders(orders) {
             <td>
                 <button class="btn-action btn-edit" onclick="openDetailModal(${o.idOrder})">👁 View</button>
     ${isOpen
-        ? `<button class="btn-action btn-activate" onclick="openPaymentModal(${o.idOrder})">💳 Close</button>`
+        ? `<button class="btn-action btn-activate" onclick="openPaymentModal(${o.idOrder})">💳 Close</button>
+           <button class="btn-action btn-cancel" onclick="cancelOrderFromTable(${o.idOrder})" title="Cancel this order">✕ Cancel</button>`
         : `<button class="btn-action btn-invoice" onclick="reopenInvoice(${o.idOrder})">🧾 Invoice</button>`
     }
             </td>
@@ -225,7 +226,11 @@ async function openDetailModal(orderId) {
     document.getElementById('detailStatusBadge').className   = `badge ${isPaid ? 'badge-paid' : 'badge-open'}`;
 
     // Botón Close → abre el modal de pago (US-23)
+    // ⚠️ Desabilitar si no hay productos
     const btnClose = document.getElementById('btnCloseOrder');
+    const hasProducts = details && details.length > 0;
+    btnClose.disabled = !hasProducts;
+    btnClose.title = hasProducts ? 'Close and pay this order' : 'Add at least 1 product before closing';
     btnClose.style.display = isPaid ? 'none' : 'block';
     btnClose.onclick = () => { closeModal('detailOverlay'); openPaymentModal(orderId); };
 
@@ -274,6 +279,13 @@ async function addProduct(idProduct) {
         apiFetch(`/api/orders/${currentOrderId}`)
     ]);
     renderLines(details || [], order?.status === 'PAID');
+    
+    // Habilitar botón de cerrar orden cuando hay productos
+    const btnClose = document.getElementById('btnCloseOrder');
+    const hasProducts = details && details.length > 0;
+    btnClose.disabled = !hasProducts;
+    btnClose.title = hasProducts ? 'Close and pay this order' : 'Add at least 1 product before closing';
+    
     const idx = allOrders.findIndex(o => o.idOrder === currentOrderId);
     if (idx !== -1 && order) allOrders[idx] = order;
     updateStats();
@@ -293,6 +305,13 @@ async function removeDetail(idDetail) {
         apiFetch(`/api/orders/${currentOrderId}`)
     ]);
     renderLines(details || [], order?.status === 'PAID');
+    
+    // Deshabilitar botón si no hay productos
+    const btnClose = document.getElementById('btnCloseOrder');
+    const hasProducts = details && details.length > 0;
+    btnClose.disabled = !hasProducts;
+    btnClose.title = hasProducts ? 'Close and pay this order' : 'Add at least 1 product before closing';
+    
     const idx = allOrders.findIndex(o => o.idOrder === currentOrderId);
     if (idx !== -1 && order) allOrders[idx] = order;
     updateStats();
@@ -348,6 +367,95 @@ function renderLines(details, isPaid) {
     }
     document.getElementById('orderTotal').textContent    = '$ ' + total.toLocaleString('es-CO');
     document.getElementById('loyaltyPoints').textContent = loyaltyPts + ' pts';
+}
+
+// ══════════════════════════════════════════════════════════════
+// CERRAR MODAL CON VALIDACIÓN — Elimina órdenes vacías
+// ══════════════════════════════════════════════════════════════
+async function closeDetailModalSafe() {
+    if (!currentOrderId) {
+        closeModal('detailOverlay');
+        return;
+    }
+
+    const details = await apiFetch(`/api/orders/${currentOrderId}/details`);
+    const hasProducts = details && details.length > 0;
+    const orderId = currentOrderId;
+
+    console.log(`Order #${orderId} - Products: ${details?.length || 0}`);
+
+    // Si la orden está vacía, eliminarla automáticamente
+    if (!hasProducts) {
+        try {
+            console.log(`Deleting empty order #${orderId}...`);
+            const res = await fetch(`${API}/api/orders/${orderId}`, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${getToken()}` }
+            });
+            
+            if (res.ok) {
+                console.log(`✅ Order #${orderId} deleted successfully`);
+                            } else {
+                console.error(`❌ Failed to delete order: ${res.status} ${res.statusText}`);
+            }
+        } catch (e) {
+            console.error('❌ Error deleting empty order:', e);
+        }
+    } else {
+        console.log(`Order #${orderId} has ${details.length} products, keeping it`);
+    }
+
+    // Cerrar modal y recargar listado
+    closeModal('detailOverlay');
+    await load();
+}
+
+// ══════════════════════════════════════════════════════════════
+// CANCELAR ORDEN DESDE TABLA — Elimina órdenes OPEN con confirmación
+// ══════════════════════════════════════════════════════════════
+async function cancelOrderFromTable(orderId) {
+    const order = allOrders.find(o => o.idOrder === orderId);
+    if (!order) return;
+    
+    if (order.status !== 'OPEN') {
+        alert('⚠️ Only OPEN orders can be cancelled');
+        return;
+    }
+
+    // Confirmar cancelación
+    const confirmed = await showConfirm({
+        title:   `🗑️ Cancel Order #${orderId}?`,
+        message: `Table ${order.table?.tableNumber || '—'} · ${order.branch?.name || ''}\n\nAll products will be returned to inventory. This action cannot be undone.`,
+        okLabel: 'Yes, Cancel Order'
+    });
+    if (!confirmed) return;
+
+    try {
+        const res = await fetch(`${API}/api/orders/${orderId}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+
+        if (res.ok) {
+            console.log(`✅ Order #${orderId} cancelled successfully`);
+            
+            // Notificación visual
+            const msg = document.createElement('div');
+            msg.style.cssText = 'position:fixed;top:20px;right:20px;background:#ff6b6b;color:white;padding:15px 20px;border-radius:6px;z-index:9999;box-shadow:0 2px 8px rgba(0,0,0,0.3);font-weight:bold';
+            msg.textContent = `✅ Order #${orderId} cancelled - Table ${order.table?.tableNumber} is now available`;
+            document.body.appendChild(msg);
+            setTimeout(() => msg.remove(), 4000);
+
+            // Recargar listado
+            await load();
+        } else {
+            const errorMsg = await res.text();
+            alert(`❌ Error: ${errorMsg}`);
+        }
+    } catch (e) {
+        console.error('Error cancelling order:', e);
+        alert('❌ Connection error');
+    }
 }
 
 // KNAPSACK — suggest combo
@@ -643,6 +751,32 @@ function printInvoice() {
         </head><body>${content}</body></html>`);
     win.document.close();
     win.print();
+}
+
+// ── CUSTOM CONFIRM MODAL ──────────────────────────────────────
+function showConfirm({ title = 'Are you sure?', message = '', okLabel = 'Confirm' } = {}) {
+    return new Promise(resolve => {
+        const overlay = document.getElementById('confirmOverlay');
+        document.getElementById('confirmTitle').textContent   = title;
+        document.getElementById('confirmMessage').textContent = message;
+        document.getElementById('confirmOk').textContent      = okLabel;
+        overlay.classList.add('active');
+
+        function cleanup(result) {
+            overlay.classList.remove('active');
+            document.getElementById('confirmOk').removeEventListener('click', onOk);
+            document.getElementById('confirmCancel').removeEventListener('click', onCancel);
+            overlay.removeEventListener('click', onBackdrop);
+            resolve(result);
+        }
+        const onOk       = () => cleanup(true);
+        const onCancel   = () => cleanup(false);
+        const onBackdrop = e => { if (e.target === overlay) cleanup(false); };
+
+        document.getElementById('confirmOk').addEventListener('click', onOk);
+        document.getElementById('confirmCancel').addEventListener('click', onCancel);
+        overlay.addEventListener('click', onBackdrop);
+    });
 }
 
 // ── Modal helpers ──────────────────────────────────────────────

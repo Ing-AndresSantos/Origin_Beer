@@ -212,8 +212,18 @@ function renderTable(products) {
 
 // ── TOGGLE STATUS ─────────────────────────────────────────────
 async function toggleStatus(id, current) {
-    const action = current ? 'deactivate' : 'activate';
-    if (!confirm(`Are you sure you want to ${action} this product?`)) return;
+    const product = allProducts.find(p => p.idProduct === id);
+    const productName = product ? product.name : `Product #${id}`;
+
+    const confirmed = await showConfirm({
+        title:   current ? '🔴 Deactivate Product?' : '✅ Activate Product?',
+        message: current
+            ? `"${productName}" will be marked as inactive and removed from orders. You can reactivate it at any time.`
+            : `"${productName}" will be reactivated and available for sale again.`,
+        okLabel: current ? 'Yes, Deactivate' : 'Yes, Activate',
+        danger:  current
+    });
+    if (!confirmed) return;
     try {
         const res = await fetch(`${API}/api/products/${id}/status`, {
             method: 'PATCH',
@@ -341,6 +351,35 @@ async function saveProduct() {
         btn.disabled = false;
         btn.textContent = editingId === null ? 'Create Product' : 'Save Changes';
     }
+}
+
+// ── CUSTOM CONFIRM MODAL ──────────────────────────────────────
+function showConfirm({ title = 'Are you sure?', message = '', okLabel = 'Confirm', danger = true } = {}) {
+    return new Promise(resolve => {
+        const overlay = document.getElementById('confirmOverlay');
+        const modal   = overlay.querySelector('.confirm-modal');
+        document.getElementById('confirmTitle').textContent   = title;
+        document.getElementById('confirmMessage').textContent = message;
+        document.getElementById('confirmOk').textContent      = okLabel;
+
+        modal.classList.toggle('confirm-safe', !danger);
+        overlay.classList.add('active');
+
+        function cleanup(result) {
+            overlay.classList.remove('active');
+            document.getElementById('confirmOk').removeEventListener('click', onOk);
+            document.getElementById('confirmCancel').removeEventListener('click', onCancel);
+            overlay.removeEventListener('click', onBackdrop);
+            resolve(result);
+        }
+        const onOk      = () => cleanup(true);
+        const onCancel  = () => cleanup(false);
+        const onBackdrop = e => { if (e.target === overlay) cleanup(false); };
+
+        document.getElementById('confirmOk').addEventListener('click', onOk);
+        document.getElementById('confirmCancel').addEventListener('click', onCancel);
+        overlay.addEventListener('click', onBackdrop);
+    });
 }
 
 // ── HELPERS ───────────────────────────────────────────────────

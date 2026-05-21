@@ -180,3 +180,103 @@ body.light-mode {
 .toast.visible { opacity: 1; transform: translateY(0); }
 .toast.toast-success { border-color: #1a4a1a; color: #81c784; background: #0a1a0a; }
 .toast.toast-error   { border-color: #4a1a1a; color: #e57373; background: #1a0a0a; }
+
+/* ── CUSTOM CONFIRM MODAL ───────────────────────────────────── */
+.confirm-modal {
+    width: 380px;
+    max-width: 92vw;
+    text-align: center;
+    padding: 0;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.confirm-icon-wrap {
+    padding: 28px 24px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.confirm-icon-wrap span {
+    font-size: 44px;
+    line-height: 1;
+    animation: confirmIconBounce 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes confirmIconBounce {
+    from { transform: scale(0.5); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+}
+
+.confirm-body {
+    padding: 4px 28px 20px;
+}
+
+.confirm-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 8px;
+}
+
+.confirm-message {
+    font-size: 13px;
+    color: var(--text-sub);
+    line-height: 1.55;
+    margin: 0;
+}
+
+.confirm-footer {
+    display: flex;
+    gap: 10px;
+    padding: 16px 24px 24px;
+    justify-content: center;
+}
+
+.confirm-footer .confirm-btn-cancel,
+.confirm-footer .confirm-btn-ok {
+    flex: 1;
+    max-width: 150px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s, transform 0.1s;
+}
+
+.confirm-footer .confirm-btn-cancel {
+    background: var(--modal-input-bg);
+    color: var(--text-muted);
+    border: 1px solid var(--btn-border);
+}
+.confirm-footer .confirm-btn-cancel:hover { opacity: 0.8; }
+
+.confirm-footer .confirm-btn-ok {
+    background: #ef4444;
+    color: #fff;
+}
+.confirm-footer .confirm-btn-ok:hover  { background: #dc2626; }
+.confirm-footer .confirm-btn-ok:active { transform: scale(0.96); }
+
+/* variante verde para activar */
+.confirm-modal.confirm-safe .confirm-btn-ok {
+    background: #22c55e;
+    color: #000;
+}
+.confirm-modal.confirm-safe .confirm-btn-ok:hover { background: #16a34a; }
+
+.btn-danger-confirm {
+    background: #ef4444;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.btn-danger-confirm:hover { background: #dc2626; }
