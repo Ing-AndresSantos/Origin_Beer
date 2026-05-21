@@ -184,10 +184,14 @@ async function openOrderModal(idTable) {
     const openOrder = openOrders.find(o => o.table?.idTable === idTable);
 
     if (openOrder) {
-        alert(
-            `⚠️ Table ${table.tableNumber} already has open Order #${openOrder.idOrder}.\n\n` +
-            `Close it before opening a new one.`
-        );
+        document.getElementById('occupiedMessage').textContent =
+            `Table ${table.tableNumber} already has open Order #${openOrder.idOrder}.\n\nClose that order before opening a new one, or tap "View Order" to manage it.`;
+
+        document.getElementById('btnViewOrder').onclick = () => {
+            closeModal('occupiedOverlay');
+            window.location.href = `../orders/orders.html?openOrder=${openOrder.idOrder}`;
+        };
+        openModal('occupiedOverlay');
         return;
     }
 

@@ -196,7 +196,15 @@ function handleTableClick(idTable) {
 
     const openOrder = openOrders.find(o => o.table?.idTable === idTable);
     if (openOrder) {
-        alert(`⚠️ Table ${table.tableNumber} already has open Order #${openOrder.idOrder}.\nClose it before opening a new one.`);
+        // Modal de mesa ocupada
+        document.getElementById('occupiedMessage').textContent =
+            `Table ${table.tableNumber} already has open Order #${openOrder.idOrder}.\n\nClose that order before opening a new one, or tap "View Order" to manage it.`;
+
+        document.getElementById('btnViewOrder').onclick = () => {
+            closeModal('occupiedOverlay');
+            window.location.href = `../orders/orders.html?openOrder=${openOrder.idOrder}`;
+        };
+        openModal('occupiedOverlay');
         return;
     }
 
@@ -343,25 +351,28 @@ async function submitEdit() {
 
 // ── Toggle active / inactive ───────────────────────────────────────────────
 function confirmDelete(idTable, tableNumber, currentlyActive) {
-    const action = currentlyActive ? 'Deactivate' : 'Activate';
-    const nameEl = document.getElementById('deleteTableName');
-    if (nameEl) nameEl.textContent = `Table ${tableNumber}`;
+    const modal = document.querySelector('#confirmOverlay .confirm-modal');
+    modal.classList.toggle('confirm-safe', !currentlyActive);
 
-    const msgEl = document.getElementById('deleteMessage');
-    if (msgEl) {
-        msgEl.textContent = currentlyActive
-            ? 'The table will remain visible but marked as Inactive.'
-            : 'The table will be marked as Active and available again.';
-    }
+    document.getElementById('confirmIcon').textContent    = currentlyActive ? '🗑️' : '✅';
+    document.getElementById('confirmTitle').textContent   = currentlyActive
+        ? `Deactivate Table ${tableNumber}?`
+        : `Activate Table ${tableNumber}?`;
+    document.getElementById('confirmMessage').textContent = currentlyActive
+        ? `Table ${tableNumber} will be marked as Inactive and hidden from staff.\nYou can re-enable it at any time.`
+        : `Table ${tableNumber} will be marked as Active and available for orders again.`;
+    document.getElementById('confirmOk').textContent = currentlyActive ? 'Yes, Deactivate' : 'Yes, Activate';
 
-    document.getElementById('btnConfirmDelete').onclick = () => doDelete(idTable, currentlyActive);
-    openModal('deleteOverlay');
+    document.getElementById('confirmOk').onclick     = () => doDelete(idTable, currentlyActive);
+    document.getElementById('confirmCancel').onclick = () => closeModal('confirmOverlay');
+    openModal('confirmOverlay');
 }
 
 async function doDelete(idTable, currentlyActive) {
+    closeModal('confirmOverlay');
     try {
-        const table  = allTables.find(t => t.idTable === idTable);
-        if (!table) { closeModal('deleteOverlay'); return; }
+        const table = allTables.find(t => t.idTable === idTable);
+        if (!table) return;
 
         const res = await fetch(`${API}/api/tables/${idTable}`, {
             method: 'PUT',
@@ -372,23 +383,39 @@ async function doDelete(idTable, currentlyActive) {
                 active      : !currentlyActive
             })
         });
-        if (!res.ok) { alert('Could not update table status'); return; }
-
-        closeModal('deleteOverlay');
+        if (!res.ok) { showToast('Could not update table status', 'error'); return; }
         await loadTables(activeBranch);
+        showToast(`Table ${table.tableNumber} ${!currentlyActive ? 'activated' : 'deactivated'} successfully.`, 'success');
     } catch (e) {
-        alert('Connection error');
+        showToast('Connection error', 'error');
     }
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function openModal(id)  { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-function closeIfOutside(e, id) { if (e.target.id === id) closeModal(id); }
+function closeIfOutside(e, id) { if (id && e.target.id === id) closeModal(id); }
 function showErr(id, msg) {
     const el = document.getElementById(id);
     el.textContent = msg;
     el.style.display = 'block';
+}
+function showToast(message, type = 'success') {
+    const existing = document.getElementById('toast');
+    if (existing) existing.remove();
+    const toast = document.createElement('div');
+    toast.id = 'toast';
+    toast.style.cssText = `
+        position:fixed; bottom:24px; right:24px; z-index:9999;
+        background:${type === 'success' ? '#22c55e' : '#ef4444'};
+        color:${type === 'success' ? '#000' : '#fff'};
+        padding:12px 20px; border-radius:8px; font-size:13px; font-weight:600;
+        box-shadow:0 4px 12px rgba(0,0,0,0.3);
+        animation: slideInToast 0.25s ease;
+    `;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
 }
 
 // ── Init ───────────────────────────────────────────────────────────────────

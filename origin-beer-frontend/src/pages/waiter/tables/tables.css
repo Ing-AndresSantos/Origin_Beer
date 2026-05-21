@@ -443,3 +443,108 @@
     transition: background .15s;
 }
 .btn-danger:hover { background: rgba(239,68,68,0.25); }
+/* ── OCCUPIED TABLE MODAL ─────────────────────────────────────── */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.6);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+.modal-overlay.open { display: flex; }
+
+.modal {
+    background: #161616;
+    border: 1px solid #2a2a2a;
+    border-radius: 14px;
+    width: 100%; max-width: 480px;
+    max-height: 90vh; overflow-y: auto;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    animation: modalIn .18s ease;
+}
+
+@keyframes modalIn {
+    from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+    to   { opacity: 1; transform: translateY(0)     scale(1);    }
+}
+
+.confirm-modal {
+    width: 380px;
+    max-width: 92vw;
+    text-align: center;
+    padding: 0;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.confirm-icon-wrap {
+    padding: 28px 24px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.confirm-icon-wrap span {
+    font-size: 46px;
+    line-height: 1;
+    animation: confirmBounce 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes confirmBounce {
+    from { transform: scale(0.4); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+}
+
+.confirm-body { padding: 4px 28px 20px; }
+
+.confirm-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text, #e8e8e8);
+    margin: 0 0 8px;
+}
+
+.confirm-message {
+    font-size: 13px;
+    color: var(--text-sub, #9ca3af);
+    line-height: 1.6;
+    margin: 0;
+    white-space: pre-line;
+}
+
+.confirm-footer {
+    display: flex;
+    gap: 10px;
+    padding: 16px 24px 24px;
+    justify-content: center;
+}
+
+.confirm-footer .confirm-btn-cancel,
+.confirm-footer .confirm-btn-view {
+    flex: 1;
+    max-width: 160px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s, transform 0.1s;
+}
+
+.confirm-footer .confirm-btn-cancel {
+    background: var(--card-bg, #1a1a1a);
+    color: var(--text-muted, #6b7280);
+    border: 1px solid var(--border, #2a2a2a);
+}
+.confirm-footer .confirm-btn-cancel:hover { opacity: 0.8; }
+
+.confirm-footer .confirm-btn-view {
+    background: #f5a623;
+    color: #000;
+}
+.confirm-footer .confirm-btn-view:hover  { opacity: 0.85; }
+.confirm-footer .confirm-btn-view:active { transform: scale(0.96); }

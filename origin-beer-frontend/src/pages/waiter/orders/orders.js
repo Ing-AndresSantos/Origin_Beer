@@ -323,6 +323,32 @@ function renderLines(details, isPaid) {
     document.getElementById('orderTotal').textContent = '$ ' + total.toLocaleString('es-CO');
 }
 
+// ── CUSTOM CONFIRM MODAL ──────────────────────────────────────
+function showConfirm({ title = 'Are you sure?', message = '', okLabel = 'Confirm' } = {}) {
+    return new Promise(resolve => {
+        const overlay = document.getElementById('confirmOverlay');
+        document.getElementById('confirmTitle').textContent   = title;
+        document.getElementById('confirmMessage').textContent = message;
+        document.getElementById('confirmOk').textContent      = okLabel;
+        overlay.classList.add('active');
+
+        function cleanup(result) {
+            overlay.classList.remove('active');
+            document.getElementById('confirmOk').removeEventListener('click', onOk);
+            document.getElementById('confirmCancel').removeEventListener('click', onCancel);
+            overlay.removeEventListener('click', onBackdrop);
+            resolve(result);
+        }
+        const onOk       = () => cleanup(true);
+        const onCancel   = () => cleanup(false);
+        const onBackdrop = e => { if (e.target === overlay) cleanup(false); };
+
+        document.getElementById('confirmOk').addEventListener('click', onOk);
+        document.getElementById('confirmCancel').addEventListener('click', onCancel);
+        overlay.addEventListener('click', onBackdrop);
+    });
+}
+
 // ── Modal helpers ──────────────────────────────────────────────
 function openModal(id)  { document.getElementById(id).classList.add('active'); }
 function closeModal(id) {
@@ -384,7 +410,11 @@ async function cancelOrderFromTable(orderId) {
     }
 
     // Confirmar cancelación
-    const confirmed = confirm(`🗑️ Cancel order #${orderId}?\nTable: ${order.table?.tableNumber || '—'}\n\nThis action cannot be undone.`);
+    const confirmed = await showConfirm({
+        title:   `🗑️ Cancel Order #${orderId}?`,
+        message: `Table ${order.table?.tableNumber || '—'}\n\nAll products will be returned to inventory. This action cannot be undone.`,
+        okLabel: 'Yes, Cancel Order'
+    });
     if (!confirmed) return;
 
     try {

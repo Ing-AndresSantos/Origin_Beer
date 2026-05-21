@@ -202,12 +202,11 @@ function renderHourlyHeatmap(data) {
 // TABLE RF-27 / RF-28
 // ══════════════════════════════════════════════════════════════
 function applyFilter() {
-    const q   = (document.getElementById('search').value || '').toLowerCase();
-    const cat = document.getElementById('filterType')?.value || '';
+    const q = (document.getElementById('search').value || '').toLowerCase();
 
     filteredRows = (reportData.rows || []).filter(r => {
         const text = `${r.productCode} ${r.productName} ${r.branchName} ${r.cashier}`.toLowerCase();
-        return (!q || text.includes(q)) && (!cat || r.category === cat);
+        return !q || text.includes(q);
     });
     currentPage = 1;
     renderTable();

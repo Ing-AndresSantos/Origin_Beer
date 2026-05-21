@@ -123,6 +123,23 @@
     </div><!-- /order-modal -->
 </div>
 
+<!-- ═══════ OCCUPIED TABLE MODAL ══════════════════════════════ -->
+<div class="modal-overlay" id="occupiedOverlay" onclick="closeIfOutside(event,'occupiedOverlay')">
+    <div class="modal confirm-modal">
+        <div class="confirm-icon-wrap">
+            <span>🔴</span>
+        </div>
+        <div class="confirm-body">
+            <h3 class="confirm-title">Table Occupied</h3>
+            <p class="confirm-message" id="occupiedMessage"></p>
+        </div>
+        <div class="confirm-footer">
+            <button class="btn-secondary confirm-btn-cancel" onclick="closeModal('occupiedOverlay')">Close</button>
+            <button class="confirm-btn-view" id="btnViewOrder">👁 View Order</button>
+        </div>
+    </div>
+</div>
+
 <script src="../../../shared.js"></script>
 <script src="tables.js"></script>
 </body>

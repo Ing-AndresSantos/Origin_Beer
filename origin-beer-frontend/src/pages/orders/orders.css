@@ -388,3 +388,71 @@
         .invoice-footer { text-align: center; margin-top: 16px; padding-top: 12px; border-top: 2px dashed var(--border, #333); font-size: 13px; color: var(--text-muted, #888); }
         .invoice-print-btn { background: #f59e0b; color: #000; border: none; border-radius: 8px; padding: 10px 22px; font-weight: 700; cursor: pointer; margin-top: 14px; width: 100%; }
         .invoice-print-btn:hover { background: #d97706; }
+
+/* ── CUSTOM CONFIRM MODAL ───────────────────────────────────── */
+.confirm-modal {
+    width: 380px;
+    max-width: 92vw;
+    text-align: center;
+    padding: 0;
+    border-radius: 16px;
+    overflow: hidden;
+}
+.confirm-icon-wrap {
+    padding: 28px 24px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.confirm-icon-wrap span {
+    font-size: 44px;
+    line-height: 1;
+    animation: confirmIconBounce 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes confirmIconBounce {
+    from { transform: scale(0.5); opacity: 0; }
+    to   { transform: scale(1);   opacity: 1; }
+}
+.confirm-body { padding: 4px 28px 20px; }
+.confirm-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 0 0 8px;
+}
+.confirm-message {
+    font-size: 13px;
+    color: var(--text-sub);
+    line-height: 1.55;
+    margin: 0;
+}
+.confirm-footer {
+    display: flex;
+    gap: 10px;
+    padding: 16px 24px 24px;
+    justify-content: center;
+}
+.confirm-footer .confirm-btn-cancel,
+.confirm-footer .confirm-btn-ok {
+    flex: 1;
+    max-width: 150px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: background 0.15s, transform 0.1s;
+}
+.confirm-footer .confirm-btn-cancel {
+    background: var(--card-bg);
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+}
+.confirm-footer .confirm-btn-cancel:hover { opacity: 0.8; }
+.confirm-footer .confirm-btn-ok {
+    background: #ef4444;
+    color: #fff;
+}
+.confirm-footer .confirm-btn-ok:hover  { background: #dc2626; }
+.confirm-footer .confirm-btn-ok:active { transform: scale(0.96); }
